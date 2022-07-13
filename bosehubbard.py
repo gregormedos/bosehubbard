@@ -97,16 +97,16 @@ class HilbertSpace:
             fock = self.get_fock_state(j)
             for i in range(self.L):
                 if fock[i] > 0:
-                    amplitude1 = np.sqrt(fock[i])
+                    amplitude1 = fock[i]
                     lower_fock = op_lower(i, fock)
 
                     indeks = (i + 1) % self.L # PBC
-                    amplitude = amplitude1 * np.sqrt(lower_fock[indeks] + 1)
+                    amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                     new_fock = op_raise(indeks, lower_fock)
                     new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
                     indeks = (i + self.L - 1) % self.L # PBC
-                    amplitude = amplitude1 * np.sqrt(lower_fock[indeks] + 1)
+                    amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                     new_fock = op_raise(indeks, lower_fock)
                     new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
@@ -139,33 +139,33 @@ class HilbertSpace:
             fock = self.get_fock_state(j)
 
             if fock[0] > 0:
-                amplitude1 = np.sqrt(fock[0])
+                amplitude1 = fock[0]
                 lower_fock = op_lower(0, fock)
                 indeks = 1 # OBC
-                amplitude = amplitude1 * np.sqrt(lower_fock[indeks] + 1)
+                amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                 new_fock = op_raise(indeks, lower_fock)
                 new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
             if fock[self.L - 1] > 0:
-                amplitude1 = np.sqrt(fock[self.L - 1])
+                amplitude1 = fock[self.L - 1]
                 lower_fock = op_lower(self.L - 1, fock)
                 indeks = self.L - 2 # OBC
-                amplitude = amplitude1 * np.sqrt(lower_fock[indeks] + 1)
+                amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                 new_fock = op_raise(indeks, lower_fock)
                 new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
                 
             for i in range(1, self.L - 1):
                 if fock[i] > 0:
-                    amplitude1 = np.sqrt(fock[i])
+                    amplitude1 = fock[i]
                     lower_fock = op_lower(i, fock)
 
                     indeks = i + 1 # OBC
-                    amplitude = amplitude1 * np.sqrt(lower_fock[indeks] + 1)
+                    amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                     new_fock = op_raise(indeks, lower_fock)
                     new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
                     indeks = i - 1 # OBC
-                    amplitude = amplitude1 * np.sqrt(lower_fock[indeks] + 1)
+                    amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                     new_fock = op_raise(indeks, lower_fock)
                     new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
@@ -187,6 +187,7 @@ class DensityOfStates:
 
     def delta(self, eigen, E):
         return self.epsilon / ((E - eigen)**2 + self.epsilon**2) / np.pi
+
 
     def dos(self, E):
         res = 0.0
