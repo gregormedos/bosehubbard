@@ -2,10 +2,10 @@ import numpy as np
 
 
 
-# generate basis
+## generate basis with maximum occupancy for every site
 # L = number of sites
-# Nmax = maximum occupancy for any site
-def gen_basis_raw(L, Nmax):
+# Nmax = maximum occupancy for every site
+def gen_basis_nmax(L, Nmax):
     if L > 1:
         D = (Nmax + 1)**L
         basis = np.zeros((D, L), dtype=int)
@@ -13,7 +13,7 @@ def gen_basis_raw(L, Nmax):
         for n in range(Nmax + 1):
             d = D // (Nmax + 1)
             basis[j:j + d, 0] = n
-            basis[j:j + d, 1:] = gen_basis_raw(L - 1, Nmax)
+            basis[j:j + d, 1:] = gen_basis_nmax(L - 1, Nmax)
             j += d
     else:
         D = Nmax + 1
@@ -24,11 +24,14 @@ def gen_basis_raw(L, Nmax):
     return basis
 
 
-# generate N-block basis
+## generate basis with const. N and maximum occupancy for every site
+## from basis with maximum occupancy for every site (not scalable)
 # N = total number of quanta
-def gen_basis_nblock_from_raw(N, L, Nmax):
+# L = number of sites
+# Nmax = maximum occupancy for every site
+def gen_basis_n_nmax_from_nmax(N, L, Nmax):
     D = (Nmax + 1)**L
-    basis = gen_basis_raw(L, Nmax)
+    basis = gen_basis_nmax(L, Nmax)
     new_basis = list()
     for j in range(D):
         if np.sum(basis[j]) == N:
@@ -37,12 +40,18 @@ def gen_basis_nblock_from_raw(N, L, Nmax):
     return np.array(new_basis)
 
 
-# calculate the dimension of N-block
+## calculate the dimension of a N-block
+# N = total number of quanta
+# L = number of sites
+# Nmax = maximum occupancy for every site
 def dim_nblock(N, L):
     return np.math.factorial(N + L - 1) // np.math.factorial(N) // np.math.factorial(L - 1)
 
 
-# generate N-block basis
+## generate N-block basis 
+# N = total number of quanta
+# L = number of sites
+# Nmax = maximum occupancy for every site
 def gen_basis_nblock(N, L, D):
     if L > 1:
         basis = np.zeros((D, L), dtype=int)
@@ -58,14 +67,19 @@ def gen_basis_nblock(N, L, D):
     return basis
 
 
-def gen_basis_nmax(N, L, Nmax):
+## generate basis with const. N and maximum occupancy for every site
+## directly (scalable)
+# N = total number of quanta
+# L = number of sites
+# Nmax = maximum occupancy for every site
+def gen_basis_n_nmax(N, L, Nmax):
     if (N - Nmax < 0):
         Nmax = N
     
     if L > 1:
         basis_l = list()
         for n in range(Nmax + 1):
-            block_subbasis = gen_basis_nmax(N - n, L - 1, Nmax)
+            block_subbasis = gen_basis_n_nmax(N - n, L - 1, Nmax)
             d = len(block_subbasis)
             block_basis = np.zeros((d, L), dtype=int)
             for j in range(d):
@@ -95,12 +109,15 @@ def gen_basis_nmax(N, L, Nmax):
 
 
 # create a Hilbert space
+# N = total number of quanta
+# L = number of sites
+# Nmax = maximum occupancy for every site
 class HilbertSpace:
     def __init__(self, N, L, Nmax):
         self.N = N                                              # total number of quanta
         self.L = L                                              # number of sites
         self.Nmax = Nmax                                        # maximum occupancy for any site
-        self.basis = gen_basis_nmax(N, L, Nmax)                 # N-block basis
+        self.basis = gen_basis_n_nmax(N, L, Nmax)               # basis with const. N and maximum occupancy for every site
         self.D = len(self.basis)                                # dimension of basis
         self.map = dict()
         for j in range(self.D):
