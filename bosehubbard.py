@@ -2,9 +2,41 @@ import numpy as np
 
 
 
+#-----------------------------------------------------------------------------------------------
+## calculate the dimension of a N-block
+# N = total number of quanta
+# L = number of sites
+#-----------------------------------------------------------------------------------------------
+def dim_nblock(N, L):
+    return np.math.factorial(N + L - 1) // np.math.factorial(N) // np.math.factorial(L - 1)
+
+
+#-----------------------------------------------------------------------------------------------
+## generate N-block basis 
+# N = total number of quanta
+# L = number of sites
+# D = dimension of basis
+#-----------------------------------------------------------------------------------------------
+def gen_basis_nblock(N, L, D):
+    if L > 1:
+        basis = np.zeros((D, L), dtype=int)
+        j = 0
+        for n in range(N + 1):
+            d = dim_nblock(n, L - 1)
+            basis[j:j + d, 0] = N - n
+            basis[j:j + d, 1:] = gen_basis_nblock(n, L - 1, d)
+            j += d
+    else:
+        basis = np.array([N], dtype=int)
+    
+    return basis
+
+
+#-----------------------------------------------------------------------------------------------
 ## generate basis with maximum occupancy for every site
 # L = number of sites
 # Nmax = maximum occupancy for every site
+#-----------------------------------------------------------------------------------------------
 def gen_basis_nmax(L, Nmax):
     if L > 1:
         D = (Nmax + 1)**L
@@ -24,11 +56,13 @@ def gen_basis_nmax(L, Nmax):
     return basis
 
 
+#-----------------------------------------------------------------------------------------------
 ## generate basis with const. N and maximum occupancy for every site
 ## from basis with maximum occupancy for every site (not scalable)
 # N = total number of quanta
 # L = number of sites
 # Nmax = maximum occupancy for every site
+#-----------------------------------------------------------------------------------------------
 def gen_basis_n_nmax_from_nmax(N, L, Nmax):
     D = (Nmax + 1)**L
     basis = gen_basis_nmax(L, Nmax)
@@ -40,38 +74,13 @@ def gen_basis_n_nmax_from_nmax(N, L, Nmax):
     return np.array(new_basis)
 
 
-## calculate the dimension of a N-block
-# N = total number of quanta
-# L = number of sites
-# Nmax = maximum occupancy for every site
-def dim_nblock(N, L):
-    return np.math.factorial(N + L - 1) // np.math.factorial(N) // np.math.factorial(L - 1)
-
-
-## generate N-block basis 
-# N = total number of quanta
-# L = number of sites
-# Nmax = maximum occupancy for every site
-def gen_basis_nblock(N, L, D):
-    if L > 1:
-        basis = np.zeros((D, L), dtype=int)
-        j = 0
-        for n in range(N + 1):
-            d = dim_nblock(n, L - 1)
-            basis[j:j + d, 0] = N - n
-            basis[j:j + d, 1:] = gen_basis_nblock(n, L - 1, d)
-            j += d
-    else:
-        basis = np.array([N], dtype=int)
-    
-    return basis
-
-
+#-----------------------------------------------------------------------------------------------
 ## generate basis with const. N and maximum occupancy for every site
 ## directly (scalable)
 # N = total number of quanta
 # L = number of sites
 # Nmax = maximum occupancy for every site
+#-----------------------------------------------------------------------------------------------
 def gen_basis_n_nmax(N, L, Nmax):
     if (N - Nmax < 0):
         Nmax = N
@@ -108,10 +117,12 @@ def gen_basis_n_nmax(N, L, Nmax):
     return basis
 
 
+#-----------------------------------------------------------------------------------------------
 # create a Hilbert space
 # N = total number of quanta
 # L = number of sites
 # Nmax = maximum occupancy for every site
+#-----------------------------------------------------------------------------------------------
 class HilbertSpace:
     def __init__(self, N, L, Nmax):
         self.N = N                                              # total number of quanta
@@ -254,7 +265,9 @@ class HilbertSpace:
             return self.op_kinetic_obc(t)
 
 
-# create the density of states
+#-----------------------------------------------------------------------------------------------
+## create the density of states
+#-----------------------------------------------------------------------------------------------
 class DensityOfStates:
     def __init__(self, eigen_h, epsilon):
         self.eigen_h = eigen_h              # eigen energies
