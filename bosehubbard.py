@@ -4,52 +4,54 @@ import numpy as np
 
 #-----------------------------------------------------------------------------------------------
 ## calculate the dimension of a N-block
-# N = total number of quanta
-# L = number of sites
+# Lsites = number of sites
+# Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def dim_nblock(N, L):
-    return np.math.factorial(N + L - 1) // np.math.factorial(N) // np.math.factorial(L - 1)
+def dim_nblock(Lsites, Nquanta):
+    return np.math.factorial(Lsites + Nquanta - 1) // np.math.factorial(Lsites - 1) // np.math.factorial(Nquanta)
 
 
 #-----------------------------------------------------------------------------------------------
 ## generate N-block basis 
-# N = total number of quanta
-# L = number of sites
-# D = dimension of basis
+# Lsites = number of sites
+# Nquanta = total number of quanta
+# Dim = dimension of basis
 #-----------------------------------------------------------------------------------------------
-def gen_basis_nblock(N, L, D):
-    if L > 1:
-        basis = np.zeros((D, L), dtype=int)
+def gen_basis_nblock(Lsites, Nquanta, Dim):
+    if Lsites > 1:
+        basis = np.zeros((Dim, Lsites), dtype=int)
         j = 0
-        for n in range(N + 1):
-            d = dim_nblock(n, L - 1)
-            basis[j:j + d, 0] = N - n
-            basis[j:j + d, 1:] = gen_basis_nblock(n, L - 1, d)
+        for n in range(Nquanta + 1):
+            l = Lsites - 1
+            d = dim_nblock(n, l)
+            basis[j:j + d, 0] = Nquanta - n
+            basis[j:j + d, 1:] = gen_basis_nblock(l, n, d)
             j += d
     else:
-        basis = np.array([N], dtype=int)
+        basis = np.array([Nquanta], dtype=int)
     
     return basis
 
 
 #-----------------------------------------------------------------------------------------------
 ## generate basis with maximum occupancy for every site
-# L = number of sites
+# Lsites = number of sites
 # Nmax = maximum occupancy for every site
 #-----------------------------------------------------------------------------------------------
-def gen_basis_nmax(L, Nmax):
-    if L > 1:
-        D = (Nmax + 1)**L
-        basis = np.zeros((D, L), dtype=int)
+def gen_basis_nmax(Lsites, Nmax):
+    if Lsites > 1:
+        Dim = (Nmax + 1)**Lsites
+        basis = np.zeros((Dim, Lsites), dtype=int)
         j = 0
         for n in range(Nmax + 1):
-            d = D // (Nmax + 1)
+            l = Lsites - 1
+            d = Dim // (Nmax + 1)
             basis[j:j + d, 0] = n
-            basis[j:j + d, 1:] = gen_basis_nmax(L - 1, Nmax)
+            basis[j:j + d, 1:] = gen_basis_nmax(l, Nmax)
             j += d
     else:
-        D = Nmax + 1
-        basis = np.zeros((D, 1), dtype=int)
+        Dim = Nmax + 1
+        basis = np.zeros((Dim, 1), dtype=int)
         for n in range(Nmax + 1):
             basis[n] = n
 
@@ -59,16 +61,16 @@ def gen_basis_nmax(L, Nmax):
 #-----------------------------------------------------------------------------------------------
 ## generate basis with const. N and maximum occupancy for every site
 ## from basis with maximum occupancy for every site (not scalable)
-# N = total number of quanta
-# L = number of sites
+# Lsites = number of sites
 # Nmax = maximum occupancy for every site
+# Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_n_nmax_from_nmax(N, L, Nmax):
-    D = (Nmax + 1)**L
-    basis = gen_basis_nmax(L, Nmax)
+def gen_basis_n_nmax_from_nmax(Lsites, Nmax, Nquanta):
+    Dim = (Nmax + 1)**Lsites
+    basis = gen_basis_nmax(Lsites, Nmax)
     new_basis = list()
-    for j in range(D):
-        if np.sum(basis[j]) == N:
+    for j in range(Dim):
+        if np.sum(basis[j]) == Nquanta:
             new_basis.append(basis[j])
     
     return np.array(new_basis)
@@ -77,62 +79,66 @@ def gen_basis_n_nmax_from_nmax(N, L, Nmax):
 #-----------------------------------------------------------------------------------------------
 ## generate basis with const. N and maximum occupancy for every site
 ## directly (scalable)
-# N = total number of quanta
-# L = number of sites
+# Lsites = number of sites
 # Nmax = maximum occupancy for every site
+# Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_n_nmax(N, L, Nmax):
-    if (N - Nmax < 0):
-        Nmax = N
+def gen_basis_n_nmax(Lsites, Nmax, Nquanta):
+    if (Nquanta < Nmax):
+        Nmax = Nquanta
     
-    if L > 1:
-        basis_l = list()
+    if Lsites > 1:
+        basis_list = list()
         for n in range(Nmax + 1):
-            block_subbasis = gen_basis_n_nmax(N - n, L - 1, Nmax)
+            block_subbasis = gen_basis_n_nmax(Lsites - 1, Nmax, Nquanta - n)
             d = len(block_subbasis)
-            block_basis = np.zeros((d, L), dtype=int)
+            block_basis = np.zeros((d, Lsites), dtype=int)
             for j in range(d):
                 block_basis[j, 0] = n
                 block_basis[:, 1:] = block_subbasis
             
-            basis_l.append(block_basis)
+            basis_list.append(block_basis)
         
-        basis_raw = basis_l[0]
+        basis_raw = basis_list[0]
         for i in range(1, Nmax + 1):
-            basis_raw = np.append(basis_raw, basis_l[i], axis=0)
+            basis_raw = np.append(basis_raw, basis_list[i], axis=0)
     else:
         basis_raw = np.array([Nmax], dtype=int)
 
-    basis_l = list()
+    basis_list = list()
     d = 0
     for state in basis_raw:
-        if np.sum(state) == N:
-            basis_l.append(state)
+        if np.sum(state) == Nquanta:
+            basis_list.append(state)
             d += 1
     
-    basis = np.zeros((d, L), dtype=int)
+    basis = np.zeros((d, Lsites), dtype=int)
     for j in range(d):
-        basis[j] = basis_l[j]
+        basis[j] = basis_list[j]
     
     return basis
 
 
 #-----------------------------------------------------------------------------------------------
-# create a Hilbert space
-# N = total number of quanta
-# L = number of sites
+## create a Hilbert space
+# Lsites = number of sites
 # Nmax = maximum occupancy for every site
+# Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
 class HilbertSpace:
-    def __init__(self, N, L, Nmax):
-        self.N = N                                              # total number of quanta
-        self.L = L                                              # number of sites
-        self.Nmax = Nmax                                        # maximum occupancy for any site
-        self.basis = gen_basis_n_nmax(N, L, Nmax)               # basis with const. N and maximum occupancy for every site
-        self.D = len(self.basis)                                # dimension of basis
+    def __init__(self, Lsites, Nmax, Sym, Nquanta):
+        self.Lsites = Lsites                                               # number of sites
+        self.Nmax = Nmax                                                   # maximum occupancy for any site
+        if Sym == 'N':
+            self.Nquanta = Nquanta                                         # total number of quanta
+            self.basis = gen_basis_n_nmax(Lsites, Nmax, Nquanta)           # basis with const. N and maximum occupancy for every site
+        else:
+            self.basis = gen_basis_nmax(Lsites, Nmax)
+        
+        self.Dim = len(self.basis)                                         # dimension of basis
         self.map = dict()
-        for j in range(self.D):
-            self.map[tuple(self.basis[j])] = j                  # mapping fock states to indices
+        for j in range(self.Dim):
+            self.map[tuple(self.basis[j])] = j                             # mapping fock states to indices
 
 
     # given index return fock state
@@ -171,11 +177,11 @@ class HilbertSpace:
 
     # Coulomb interaction
     def op_interaction(self, U):
-        new_states = np.zeros((self.D, self.D), dtype=float)
-        for j in range(self.D):
+        new_states = np.zeros((self.Dim, self.Dim), dtype=float)
+        for j in range(self.Dim):
             fock = self.get_fock_state(j)
             amplitude = 0.0
-            for i in range(self.L):
+            for i in range(self.Lsites):
                 amplitude += fock[i] * (fock[i] - 1)
             
             new_states[j, j] = 0.5 * U * amplitude
@@ -185,21 +191,21 @@ class HilbertSpace:
 
     # Hamiltonian with PBC
     def op_kinetic_pbc(self, t):
-        new_states = np.zeros((self.D, self.D), dtype=float)
-        for j in range(self.D):
+        new_states = np.zeros((self.Dim, self.Dim), dtype=float)
+        for j in range(self.Dim):
             fock = self.get_fock_state(j)
-            for i in range(self.L):
+            for i in range(self.Lsites):
                 if fock[i] > 0:
                     amplitude1 = fock[i]
                     lower_fock = self.op_lower(i, fock)
 
-                    indeks = (i + 1) % self.L # PBC
+                    indeks = (i + 1) % self.Lsites # PBC
                     if lower_fock[indeks] < self.Nmax:
                         amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                         new_fock = self.op_raise(indeks, lower_fock)
                         new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
-                    indeks = (i + self.L - 1) % self.L # PBC
+                    indeks = (i + self.Lsites - 1) % self.Lsites # PBC
                     if lower_fock[indeks] < self.Nmax:
                         amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                         new_fock = self.op_raise(indeks, lower_fock)
@@ -216,8 +222,8 @@ class HilbertSpace:
 
     # Hamiltonian with OBC
     def op_kinetic_obc(self, t):
-        new_states = np.zeros((self.D, self.D), dtype=float)
-        for j in range(self.D):
+        new_states = np.zeros((self.Dim, self.Dim), dtype=float)
+        for j in range(self.Dim):
             fock = self.get_fock_state(j)
 
             if fock[0] > 0:
@@ -229,16 +235,16 @@ class HilbertSpace:
                     new_fock = self.op_raise(indeks, lower_fock)
                     new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
 
-            if fock[self.L - 1] > 0:
-                amplitude1 = fock[self.L - 1]
-                lower_fock = self.op_lower(self.L - 1, fock)
-                indeks = self.L - 2 # OBC
+            if fock[self.Lsites - 1] > 0:
+                amplitude1 = fock[self.Lsites - 1]
+                lower_fock = self.op_lower(self.Lsites - 1, fock)
+                indeks = self.Lsites - 2 # OBC
                 if fock[indeks] < self.Nmax:
                     amplitude = np.sqrt(amplitude1 * (lower_fock[indeks] + 1))
                     new_fock = self.op_raise(indeks, lower_fock)
                     new_states[j, self.map[tuple(new_fock)]] += - t * amplitude
                 
-            for i in range(1, self.L - 1):
+            for i in range(1, self.Lsites - 1):
                 if fock[i] > 0:
                     amplitude1 = fock[i]
                     lower_fock = self.op_lower(i, fock)
@@ -267,6 +273,8 @@ class HilbertSpace:
 
 #-----------------------------------------------------------------------------------------------
 ## create the density of states
+# eigen_h = eqigen energies
+# epsilon = broadening of delta function
 #-----------------------------------------------------------------------------------------------
 class DensityOfStates:
     def __init__(self, eigen_h, epsilon):
