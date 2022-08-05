@@ -329,7 +329,7 @@ class HilbertSpace:
         rep_fock = np.copy(fock)
         new_fock = np.copy(fock)
         Phase = 0
-        for i in range(self.Lsites):
+        for i in range(1, self.Lsites + 1):
             new_fock = op_translation(new_fock, self.Lsites)
             if tuple(new_fock) < tuple(rep_fock):
                 rep_fock = np.copy(new_fock)
