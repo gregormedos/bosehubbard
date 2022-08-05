@@ -358,7 +358,7 @@ class HilbertSpace:
                             Period_b = self.periodicities[b]
                             amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1) * Period_a / Period_b)
                             Arg = 2.0 * np.pi * self.Kmoment * Phase / self.Lsites
-                            matrika[a, b] += - t * amplitude * complex(np.cos(Arg), - np.sin(Arg))
+                            matrika[a, b] += - t * amplitude * complex(np.cos(Arg), np.sin(Arg))
 
                     j = (i + self.Lsites - 1) % self.Lsites # PBC
                     if lower_fock[j] < self.Nmax:
@@ -369,7 +369,7 @@ class HilbertSpace:
                             Period_b = self.periodicities[b]
                             amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1) * Period_a / Period_b)
                             Arg = 2.0 * np.pi * self.Kmoment * Phase / self.Lsites
-                            matrika[a, b] += - t * amplitude * complex(np.cos(Arg), - np.sin(Arg))
+                            matrika[a, b] += - t * amplitude * complex(np.cos(Arg), np.sin(Arg))
 
         return matrika
 
