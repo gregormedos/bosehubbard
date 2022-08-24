@@ -3,6 +3,15 @@ import numpy as np
 
 
 #-----------------------------------------------------------------------------------------------
+## GLOBAL VARIABLES
+#-----------------------------------------------------------------------------------------------
+g_basis_nmax = 0
+g_basis_nmax_is = False
+g_basis_n_nmax = 0
+g_basis_n_nmax_is = False
+
+
+#-----------------------------------------------------------------------------------------------
 ## lowering operator
 #-----------------------------------------------------------------------------------------------
 def op_lower(i, fock):
@@ -31,34 +40,10 @@ def op_translation(fock, Lsites):
 
 
 #-----------------------------------------------------------------------------------------------
-## calculate the dimension of a N-block
-# Lsites = number of sites
-# Nquanta = total number of quanta
+## Lorentzian approximation of Delta function
 #-----------------------------------------------------------------------------------------------
-def dim_nblock(Lsites, Nquanta):
-    return np.math.factorial(Lsites + Nquanta - 1) // np.math.factorial(Lsites - 1) // np.math.factorial(Nquanta)
-
-
-#-----------------------------------------------------------------------------------------------
-## generate N-block basis 
-# Lsites = number of sites
-# Nquanta = total number of quanta
-# Dim = dimension of basis
-#-----------------------------------------------------------------------------------------------
-def gen_basis_nblock(Lsites, Nquanta, Dim):
-    if Lsites > 1:
-        basis = np.zeros((Dim, Lsites), dtype=int)
-        a = 0
-        for n in range(Nquanta + 1):
-            l = Lsites - 1
-            d = dim_nblock(n, l)
-            basis[a:a + d, 0] = Nquanta - n
-            basis[a:a + d, 1:] = gen_basis_nblock(l, n, d)
-            a += d
-    else:
-        basis = np.array([Nquanta], dtype=int)
-    
-    return basis
+def Lorentzian(x, epsilon):
+        return epsilon / (x**2 + epsilon**2) / np.pi
 
 
 #-----------------------------------------------------------------------------------------------
@@ -94,7 +79,13 @@ def gen_basis_nmax(Lsites, Nmax):
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
 def gen_basis_n_nmax_from_nmax(Lsites, Nmax, Nquanta):
-    basis_raw = gen_basis_nmax(Lsites, Nmax)
+    global g_basis_nmax_is
+    if g_basis_nmax_is == False:
+        global g_basis_nmax
+        g_basis_nmax = gen_basis_nmax(Lsites, Nmax)
+        g_basis_nmax_is = True
+
+    basis_raw = np.copy(g_basis_nmax)
     basis_list = list()
     for state in basis_raw:
         if np.sum(state) == Nquanta:
@@ -110,28 +101,31 @@ def gen_basis_n_nmax_from_nmax(Lsites, Nmax, Nquanta):
 # Nmax = maximum occupancy for every site
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_n_nmax(Lsites, Nmax, Nquanta):
-    if (Nquanta < Nmax):
+def __gen_basis_n_nmax(Lsites, Nmax, Nquanta):
+    if Nquanta < Nmax:
         Nmax = Nquanta
     
     if Lsites > 1:
         basis_list = list()
         for n in range(Nmax + 1):
-            block_subbasis = gen_basis_n_nmax(Lsites - 1, Nmax, Nquanta - n)
+            block_subbasis = __gen_basis_n_nmax(Lsites - 1, Nmax, Nquanta - n)
             d = len(block_subbasis)
             block_basis = np.zeros((d, Lsites), dtype=int)
             for a in range(d):
                 block_basis[a, 0] = n
-                block_basis[:, 1:] = block_subbasis
-            
+            block_basis[:, 1:] = block_subbasis
             basis_list.append(block_basis)
-        
+
         basis_raw = basis_list[0]
         for i in range(1, Nmax + 1):
             basis_raw = np.append(basis_raw, basis_list[i], axis=0)
     else:
         basis_raw = np.array([Nmax], dtype=int)
 
+    return basis_raw
+
+def gen_basis_n_nmax(Lsites, Nmax, Nquanta):
+    basis_raw = __gen_basis_n_nmax(Lsites, Nmax, Nquanta)
     basis_list = list()
     for state in basis_raw:
         if np.sum(state) == Nquanta:
@@ -147,8 +141,18 @@ def gen_basis_n_nmax(Lsites, Nmax, Nquanta):
 # Nmax = maximum occupancy for every site
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment):
-    basis_raw = gen_basis_n_nmax(Lsites, Nmax, Nquanta)
+def gen_basis_k_n_nmax_from_n_nmax(Lsites, Nmax, Nquanta, Kmoment, Diag=None):
+    global g_basis_n_nmax_is
+    if g_basis_n_nmax_is == False:
+        global g_basis_n_nmax
+        if Diag == 'full':
+            g_basis_n_nmax = gen_basis_n_nmax_from_nmax(Lsites, Nmax, Nquanta)
+        else:
+            g_basis_n_nmax = gen_basis_n_nmax(Lsites, Nmax, Nquanta)
+
+        g_basis_n_nmax_is = True
+
+    basis_raw = np.copy(g_basis_n_nmax)
     d = len(basis_raw)
     basis_list = list()
     periodicity_list = list()
@@ -174,6 +178,37 @@ def gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment):
 
 
 #-----------------------------------------------------------------------------------------------
+## calculate the dimension of a N-block
+# Lsites = number of sites
+# Nquanta = total number of quanta
+#-----------------------------------------------------------------------------------------------
+def dim_nblock(Lsites, Nquanta):
+    return np.math.factorial(Lsites + Nquanta - 1) // np.math.factorial(Lsites - 1) // np.math.factorial(Nquanta)
+
+
+#-----------------------------------------------------------------------------------------------
+## generate N-block basis 
+# Lsites = number of sites
+# Nquanta = total number of quanta
+# Dim = dimension of basis
+#-----------------------------------------------------------------------------------------------
+def gen_basis_nblock(Lsites, Nquanta, Dim):
+    if Lsites > 1:
+        basis = np.zeros((Dim, Lsites), dtype=int)
+        a = 0
+        for n in range(Nquanta + 1):
+            l = Lsites - 1
+            d = dim_nblock(n, l)
+            basis[a:a + d, 0] = Nquanta - n
+            basis[a:a + d, 1:] = gen_basis_nblock(l, n, d)
+            a += d
+    else:
+        basis = np.array([Nquanta], dtype=int)
+    
+    return basis
+
+
+#-----------------------------------------------------------------------------------------------
 ## create a Hilbert space
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
@@ -182,21 +217,44 @@ def gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment):
 #-----------------------------------------------------------------------------------------------
 class HilbertSpace:
     ## construct Hilbert space with given parameters
-    def __init__(self, Lsites, Nmax, Sym=None, Nquanta=None, Kmoment=None):
+    def __init__(self, Lsites, Nmax, Diag='full', Sym=None, Nquanta=None, Kmoment=None):
         self.Lsites = Lsites                                               # number of sites
         self.Nmax = Nmax                                                   # maximum occupancy for any site
-        if Sym == 'kN':
-            self.Nquanta = Nquanta                                                                  # total number of quanta
-            self.Kmoment = Kmoment                                                                  # cyrstal momentum k
-            self.basis, self.periodicities = gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment)     # kN basis
+        if Diag == 'full':
+            if Sym == 'kN':
+                self.Nquanta = Nquanta                                                                              # total number of quanta
+                self.Kmoment = Kmoment                                                                              # cyrstal momentum k
+                self.basis, self.periodicities = gen_basis_k_n_nmax_from_n_nmax(Lsites, Nmax, Nquanta, Kmoment, Diag)     # kN Nmax basis
 
-        elif Sym == 'N':
-            self.Nquanta = Nquanta                                         # total number of quanta N
-            self.basis = gen_basis_n_nmax(Lsites, Nmax, Nquanta)           # N basis
+            elif Sym == 'N':
+                self.Nquanta = Nquanta                                                           # total number of quanta N
+                self.basis = gen_basis_n_nmax_from_nmax(Lsites, Nmax, Nquanta)                   # N Nmax basis
+
+            else:
+                self.basis = gen_basis_nmax(Lsites, Nmax)                      # full Nmax basis
+
+        elif Diag == 'N':
+            if Sym == 'kN':
+                self.Nquanta = Nquanta                                                                              # total number of quanta
+                self.Kmoment = Kmoment                                                                              # cyrstal momentum k
+                self.basis, self.periodicities = gen_basis_k_n_nmax_from_n_nmax(Lsites, Nmax, Nquanta, Kmoment)     # kN Nmax basis
+
+            else:
+                self.Nquanta = Nquanta                                                           # total number of quanta N
+                if Nquanta < Nmax:
+                    self.basis = gen_basis_nblock(Lsites, Nquanta, dim_nblock(Lsites, Nquanta))  # N-block basis
+                else:
+                    self.basis = gen_basis_n_nmax(Lsites, Nmax, Nquanta)                         # N Nmax basis
+
+        elif Diag == 'kN':
+            self.Nquanta = Nquanta                                                                                # total number of quanta
+            self.Kmoment = Kmoment                                                                                # crystal momentum k
+            self.basis, self.periodicities = gen_basis_k_n_nmax_from_n_nmax(Lsites, Nmax, Nquanta, Kmoment)       # kN Nmax basis
 
         else:
-            self.basis = gen_basis_nmax(Lsites, Nmax)                      # full basis
-        
+            self.basis = gen_basis_nmax(Lsites, Nmax)                      # full Nmax basis
+
+
         self.Dim = len(self.basis)                                         # dimension of Hilbert space
         self.map = dict()
         for a in range(self.Dim):
@@ -338,7 +396,7 @@ class HilbertSpace:
         return (rep_fock, Phase)
 
 
-    ## k-block Hamiltonian
+    ## kN-block Hamiltonian
     def op_kinetic_k(self, t):
         matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
@@ -386,19 +444,17 @@ class HilbertSpace:
 # epsilon = broadening of delta function
 #-----------------------------------------------------------------------------------------------
 class DensityOfStates:
-    def __init__(self, eigen_h, epsilon):
-        self.eigen_h = eigen_h              # eigen energies
-        self.epsilon = epsilon              # broadening of delta function
+    def __init__(self, spectrum, epsilon):
+        self.sprectrum = spectrum              # eigen energies
+        self.NumE = len(spectrum)              # number of eigen energies
+        self.epsilon = epsilon                 # broadening of Delta function
+        self.energies = np.linspace(spectrum[0] - 2 * epsilon, spectrum[-1] + 2 * epsilon, 1001)
 
 
-    def delta(self, eigen, E):
-        return self.epsilon / ((E - eigen)**2 + self.epsilon**2) / np.pi
+    ## density of state
+    def __dos(self, E):
+        return sum([Lorentzian(E - eigenE, self.epsilon) for eigenE in self.sprectrum]) / self.NumE
 
-
-    def dos(self, E):
-        res = 0.0
-        for eigen in self.eigen_h:
-            res += self.delta(eigen, E)
-        
-        res /= len(self.eigen_h)
-        return res
+    def dos(self):
+        dist = self.__dos(self.energies)
+        return dist
