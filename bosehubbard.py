@@ -55,6 +55,7 @@ def dim_nmax(Lsites, Nmax):
 ## directly (NOT SCALABLE)
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
+# Dim = Hilbert space dimension
 #-----------------------------------------------------------------------------------------------
 def gen_basis_nmax(Lsites, Nmax, Dim):
     if Lsites > 1:
@@ -63,14 +64,14 @@ def gen_basis_nmax(Lsites, Nmax, Dim):
         for n in range(Nmax + 1):
             l = Lsites - 1
             d = Dim // (Nmax + 1)
-            basis[a:a + d, 0] = n
+            basis[a:a + d, 0] = Nmax - n
             basis[a:a + d, 1:] = gen_basis_nmax(l, Nmax, d)
             a += d
     else:
         Dim = Nmax + 1
         basis = np.zeros((Dim, 1), dtype=int)
         for n in range(Nmax + 1):
-            basis[n] = n
+            basis[n] = Nmax - n
 
     return basis
 
@@ -86,11 +87,11 @@ def dim_nblock(Lsites, Nquanta):
 
 #-----------------------------------------------------------------------------------------------
 ## generate N-block basis
-## with conservation of the number of quanta (N)
+## with conservation of the total number of quanta (N)
 ## directly (SCALABLE)
 # Lsites = number of sites
 # Nquanta = total number of quanta
-# Dim = dimension of basis
+# Dim = Hilbert space dimension
 #-----------------------------------------------------------------------------------------------
 def gen_basis_nblock(Lsites, Nquanta, Dim):
     if Lsites > 1:
@@ -98,9 +99,9 @@ def gen_basis_nblock(Lsites, Nquanta, Dim):
         a = 0
         for n in range(Nquanta + 1):
             l = Lsites - 1
-            d = dim_nblock(l, Nquanta - n)
-            basis[a:a + d, 0] = n
-            basis[a:a + d, 1:] = gen_basis_nblock(l, Nquanta - n, d)
+            d = dim_nblock(l, n)
+            basis[a:a + d, 0] = Nquanta - n
+            basis[a:a + d, 1:] = gen_basis_nblock(l, n, d)
             a += d
     else:
         basis = np.array([Nquanta], dtype=int)
@@ -109,54 +110,58 @@ def gen_basis_nblock(Lsites, Nquanta, Dim):
 
 
 #-----------------------------------------------------------------------------------------------
-## generate N Nmax basis
-## with conservation of the number of quanta (N)
+## generate Nmax N-block basis
+## with conservation of the total number of quanta (N)
 ## with maximum occupancy for every site (Nmax)
 ## directly (SCALABLE)
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_n_nmax(Lsites, Nmax, Nquanta):
+def gen_basis_nblock_nmax(Lsites, Nmax, Nquanta):
     if Nquanta < Nmax:
-        Nmax = Nquanta
+        d = dim_nblock(Lsites, Nquanta)
+        return gen_basis_nblock(Lsites, Nquanta, d)
     
     if Lsites > 1:
+        Nmin = Nquanta - Nmax
         basis_list = list()
         basis_list_len = Nmax + 1
-        for n in range(Nmax + 1):
-            block_subbasis = gen_basis_n_nmax(Lsites - 1, Nmax, Nquanta - n)
+        for n in range(Nmin, Nquanta + 1):
+            block_subbasis = gen_basis_nblock_nmax(Lsites - 1, Nmax, n)
             if type(block_subbasis) == type(None):
                 basis_list_len -= 1
                 continue
+
             d = len(block_subbasis)
             block_basis = np.zeros((d, Lsites), dtype=int)
             for a in range(d):
-                block_basis[a, 0] = n
+                block_basis[a, 0] = Nquanta - n
             block_basis[:, 1:] = block_subbasis
             basis_list.append(block_basis)
 
-        basis_raw = basis_list[0]
+        basis = basis_list[0]
         for i in range(1, basis_list_len):
-            basis_raw = np.append(basis_raw, basis_list[i], axis=0)
-    elif Nmax < Nquanta:
-        basis_raw = None
-    else:
-        basis_raw = np.array([Nmax], dtype=int)
+            basis = np.append(basis, basis_list[i], axis=0)
 
-    return basis_raw
+    else:
+        if Nquanta > Nmax:
+            return None
+        
+        basis = np.array([Nquanta], dtype=int)
+
+    return basis
 
 
 #-----------------------------------------------------------------------------------------------
-## generate N Nmax basis
-## with conservation of the number of quanta (N)
+## generate Nmax N-block basis
+## with conservation of the total number of quanta (N)
 ## with maximum occupancy for every site (Nmax)
-## from full Nmax basis (NOT SCALABLE)
-# Lsites = number of sites
-# Nmax = maximum occupancy for every site
+## from given full Nmax basis (NOT SCALABLE)
+# superbasis = full Nmax basis
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_n_nmax_from_nmax(superbasis, Nquanta):
+def gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta):
     basis_list = list()
     for r_state in superbasis:
         if np.sum(r_state) == Nquanta:
@@ -167,12 +172,12 @@ def gen_basis_n_nmax_from_nmax(superbasis, Nquanta):
 
 #-----------------------------------------------------------------------------------------------
 ## generate kN-block basis
-## with conservation of the crystal moment (k)
-## with conservation of the number of quanta (N)
-## from N-block basis (SCALABLE)
+## with conservation of the crystal momentum (k)
+## with conservation of the total number of quanta (N)
+## by creating N-block basis (SCALABLE)
 # Lsites = number of sites
-# Nmax = maximum occupancy for every site
 # Nquanta = total number of quanta
+# Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
 def gen_basis_knblock(Lsites, Nquanta, Kmoment):
     d = dim_nblock(Lsites, Nquanta)
@@ -184,7 +189,7 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment):
         t_state = np.copy(r_state)
         for i in range(1, Lsites + 1):
             t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) < tuple(r_state):
+            if tuple(t_state) > tuple(r_state):
                 break
             elif tuple(t_state) == tuple(r_state):
                 if (Kmoment % (Lsites / i)) == 0:
@@ -201,15 +206,18 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment):
 
 
 #-----------------------------------------------------------------------------------------------
-## generate kN-block basis
-## with conservation of the crystal moment (k)
-## with conservation of the number of quanta (N)
-## from N-block basis (SCALABLE)
+## generate Nmax kN basis
+## with conservation of the crystal momentum (k)
+## with conservation of the total number of quanta (N)
+## with maximum occupancy for every site (Nmax)
+## from given N Nmax basis (SCALABLE)
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
 # Nquanta = total number of quanta
+# Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
-def gen_basis_knblock_from_nblock(superbasis, Lsites, Kmoment):
+def gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment):
+    superbasis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)
     basis_list = list()
     periodicity_list = list()
     for r_state in superbasis:
@@ -217,7 +225,7 @@ def gen_basis_knblock_from_nblock(superbasis, Lsites, Kmoment):
         t_state = np.copy(r_state)
         for i in range(1, Lsites + 1):
             t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) < tuple(r_state):
+            if tuple(t_state) > tuple(r_state):
                 break
             elif tuple(t_state) == tuple(r_state):
                 if (Kmoment % (Lsites / i)) == 0:
@@ -235,16 +243,15 @@ def gen_basis_knblock_from_nblock(superbasis, Lsites, Kmoment):
 
 #-----------------------------------------------------------------------------------------------
 ## generate kN Nmax basis
-## with conservation of the crystal moment (k)
-## with conservation of the number of quanta (N)
+## with conservation of the crystal momentum (k)
+## with conservation of the total number of quanta (N)
 ## with maximum occupancy for every site (Nmax)
-## from N Nmax basis (SCALABLE)
+## from given N Nmax basis (SCALABLE)
+# superbasis = N Nmax basis
 # Lsites = number of sites
-# Nmax = maximum occupancy for every site
-# Nquanta = total number of quanta
+# Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
-def gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment):
-    superbasis = gen_basis_n_nmax(Lsites, Nmax, Nquanta)
+def gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment):
     basis_list = list()
     periodicity_list = list()
     for r_state in superbasis:
@@ -252,7 +259,7 @@ def gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment):
         t_state = np.copy(r_state)
         for i in range(1, Lsites + 1):
             t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) < tuple(r_state):
+            if tuple(t_state) > tuple(r_state):
                 break
             elif tuple(t_state) == tuple(r_state):
                 if (Kmoment % (Lsites / i)) == 0:
@@ -266,101 +273,66 @@ def gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment):
             periodicity_list.append(Period)
 
     return (np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int))
-
-
-#-----------------------------------------------------------------------------------------------
-## generate kN Nmax basis
-## with conservation of the crystal moment (k)
-## with conservation of the number of quanta (N)
-## with maximum occupancy for every site (Nmax)
-## from N Nmax basis (SCALABLE)
-# Lsites = number of sites
-# Nmax = maximum occupancy for every site
-# Nquanta = total number of quanta
-#-----------------------------------------------------------------------------------------------
-def gen_basis_k_n_nmax_from_n_nmax(superbasis, Lsites, Kmoment):
-    basis_list = list()
-    periodicity_list = list()
-    for r_state in superbasis:
-        Period = -1
-        t_state = np.copy(r_state)
-        for i in range(1, Lsites + 1):
-            t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) < tuple(r_state):
-                break
-            elif tuple(t_state) == tuple(r_state):
-                if (Kmoment % (Lsites / i)) == 0:
-                    Period = i
-                    break
-                else:
-                    break
-    
-        if Period >= 0:
-            basis_list.append(t_state)
-            periodicity_list.append(Period)
-
-    return (np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 #-----------------------------------------------------------------------------------------------
 ## create a Hilbert space
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
-# Sym = symmetry type for basis generation
-# Nquanta = total number of quanta
-# Kmoment = crystal momentum k
+# *
+# Diag = specify any fixed commuting quantum numbers to diagonalize a block
+# Sym = symmetry type for block diagonalization
+# Nquanta = conserved total number of quanta (N)
+# Kmoment = conserved crystal momentum (k)
+# Parity = conserved parity (p)
+# *
 #-----------------------------------------------------------------------------------------------
 class HilbertSpace:
     ## construct a Hilbert space with given parameters
-    def __init__(self, Lsites, Nmax, Diag='full', Sym=None, Nquanta=None, Kmoment=None):
+    def __init__(self, Lsites, Nmax, Diag='full', Sym=None, Nquanta=None, Kmoment=None, Parity=None):
         self.Lsites = Lsites                                               # number of sites
         self.Nmax = Nmax                                                   # maximum occupancy for any site
         
         if Diag == 'full':
             self.Dim = dim_nmax(Lsites, Nmax) # dimension of Hilbert space
             self.basis = gen_basis_nmax(Lsites, Nmax, self.Dim)     # full Nmax basis
-            if Sym in ('N', 'kN'):
+            if Sym in ('N', 'kN', 'pkN'):
                 self.subspaces = list()
                 for n in range(Lsites * Nmax + 1):
-                    self.subspaces.append(HilbertSubspace(self.basis, self.Dim, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # N Nmax Hilbert subspaces
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # N Nmax Hilbert subspaces
 
         elif Diag == 'N':
             self.Nquanta = Nquanta                                         # total number of quanta
-            if Nquanta < Nmax:
+            if Nquanta <= Nmax:
                 self.Dim = dim_nblock(Lsites, Nquanta) # dimension of Hilbert space
                 self.basis = gen_basis_nblock(Lsites, Nquanta, self.Dim)  # N-block basis
             else:
-                self.basis = gen_basis_n_nmax(Lsites, Nmax, Nquanta)                         # N Nmax basis
+                self.basis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)      # N Nmax basis
                 self.Dim = len(self.basis) # dimension of Hilbert space
-            if Sym == 'kN':
+            if Sym in ('kN', 'pkN'):
                 self.subspaces = list()
                 for k in range(Lsites):
-                    self.subspaces.append(HilbertSubspace(self.basis, self.Dim, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN Nmax basis
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN Nmax Hilbert subspaces
                 
         elif Diag == 'kN':
-            self.Nquanta = Nquanta                                                                                # total number of quanta
-            self.Kmoment = Kmoment                                                                                # crystal momentum k
-            self.basis, self.periodicities = gen_basis_k_n_nmax(Lsites, Nmax, Nquanta, Kmoment)                   # kN Nmax basis
+            self.Nquanta = Nquanta                   # total number of quanta
+            self.Kmoment = Kmoment                   # crystal momentum k
+            if Nquanta <= Nmax:
+                self.basis, self.periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment)          # kN-block basis
+            else:
+                self.basis, self.periodicities = gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment)   # kN Nmax basis
             self.Dim = len(self.basis) # dimension of Hilbert space
+            if Sym == 'pkN':
+                self.subspaces = list()
+                for p in (-1, 1):
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Nmax Hilbert subspaces
+
+        elif Diag == 'pkN':
+            self.Nquanta = Nquanta                   # total number of quanta
+            self.Kmoment = Kmoment                   # crystal momentum k
+            self.Parity = Parity                     # parity p
+            # ADD BASIS GENERATION
+            # ADD BASIS DIMENSION
 
         self.map = dict()
         for a in range(self.Dim):
@@ -434,7 +406,7 @@ class HilbertSpace:
 
         return matrika
 
-    def op_hamiltonian_obc(self, t, inter, U):
+    def op_hamiltonian_obc(self, t, inter=False, U=None):
         if inter:
             return self.op_kinetic_obc(t) + self.op_interaction(U)
         else:
@@ -467,14 +439,14 @@ class HilbertSpace:
 
         return matrika
 
-    def op_hamiltonian_pbc(self, t, inter, U):
+    def op_hamiltonian_pbc(self, t, inter=False, U=None):
         if inter:
             return self.op_kinetic_pbc(t) + self.op_interaction(U)
         else:
             return self.op_kinetic_pbc(t)
 
 
-    ## Coulomb interaction for k-block Hamiltonian
+    ## Coulomb interaction for kN-block Hamiltonian
     def op_interaction_k(self, U):
         matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
@@ -537,7 +509,7 @@ class HilbertSpace:
 
         return matrika
 
-    def op_hamiltonian_k(self, t, inter, U):
+    def op_hamiltonian_k(self, t, inter=False, U=None):
         if inter:
             return self.op_kinetic_k(t) + self.op_interaction_k(U)
         else:
@@ -546,30 +518,44 @@ class HilbertSpace:
 
 #-----------------------------------------------------------------------------------------------
 ## create a Hilbert subspace
+# superbasis = basis from which the subbasis is generated
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
-# Sym = symmetry type for basis generation
-# Nquanta = total number of quanta
-# Kmoment = crystal momentum k
+# Nquanta = conserved total number of quanta (N)
+# *
+# Diag = specify any fixed commuting quantum numbers to diagonalize a block
+# Sym = symmetry type for block diagonalization
+# Kmoment = conserved crystal momentum (k)
+# Parity = conserved parity (p)
+# *
 #-----------------------------------------------------------------------------------------------
 class HilbertSubspace(HilbertSpace):
     ## construct a Hilbert subspace with given parameters
-    def __init__(self, superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None):
+    def __init__(self, superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None, Parity=None):
         self.Lsites = Lsites                                               # number of sites
         self.Nmax = Nmax                                                   # maximum occupancy for any site
         self.Nquanta = Nquanta                                             # total number of quanta
         self.superbasis = superbasis
 
         if Diag == 'N':
-            self.basis = gen_basis_n_nmax_from_nmax(superbasis, Nquanta)      # N Nmax basis
-            if Sym == 'kN':
+            self.basis = gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta)      # N Nmax basis
+            if Sym in ('kN', 'pkN'):
                 self.subspaces = list()
                 for k in range(Lsites):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN Nmax basis
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN Nmax Hilbert subspaces
                 
         elif Diag == 'kN':
-            self.Kmoment = Kmoment                                                                          # crystal momentum k
-            self.basis, self.periodicities = gen_basis_k_n_nmax_from_n_nmax(superbasis, Lsites, Kmoment)            # kN Nmax basis
+            self.Kmoment = Kmoment        # crystal momentum k
+            self.basis, self.periodicities = gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment)            # kN Nmax basis
+            if Sym == 'pkN':
+                self.subspaces = list()
+                for p in (-1, 1):
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Nmax Hilbert subspaces
+
+        elif Diag == 'pkN':
+            self.Kmoment = Kmoment        # crystal momentum k
+            self.Parity = Parity          # parity p
+            # ADD BASIS GENERATION
 
         self.Dim = len(self.basis)                                         # dimension of Hilbert space
         self.map = dict()
