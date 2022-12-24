@@ -41,16 +41,16 @@ def op_reflection(fock, Lsites):
 
 
 #-----------------------------------------------------------------------------------------------
-## calculate the dimension of a N-block
+## calculate the dimension of Nmax full Hilbert space
 # Lsites = number of sites
-# Nquanta = total number of quanta
+# Nmax = maximum occupancy for every site
 #-----------------------------------------------------------------------------------------------
 def dim_nmax(Lsites, Nmax):
     return (Nmax + 1)**Lsites
 
 
 #-----------------------------------------------------------------------------------------------
-## generate full Nmax basis
+## generate Nmax full basis
 ## with maximum occupancy for every site (Nmax)
 ## directly (NOT SCALABLE)
 # Lsites = number of sites
@@ -77,7 +77,7 @@ def gen_basis_nmax(Lsites, Nmax, Dim):
 
 
 #-----------------------------------------------------------------------------------------------
-## calculate the dimension of a N-block
+## calculate the dimension of N-block Hilbert space
 # Lsites = number of sites
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
@@ -206,7 +206,7 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment):
 
 
 #-----------------------------------------------------------------------------------------------
-## generate Nmax kN basis
+## generate Nmax kN-block basis
 ## with conservation of the crystal momentum (k)
 ## with conservation of the total number of quanta (N)
 ## with maximum occupancy for every site (Nmax)
@@ -242,7 +242,7 @@ def gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment):
 
 
 #-----------------------------------------------------------------------------------------------
-## generate kN Nmax basis
+## generate Nmax kN-block basis
 ## with conservation of the crystal momentum (k)
 ## with conservation of the total number of quanta (N)
 ## with maximum occupancy for every site (Nmax)
@@ -290,53 +290,53 @@ def gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment):
 class HilbertSpace:
     ## construct a Hilbert space with given parameters
     def __init__(self, Lsites, Nmax, Diag='full', Sym=None, Nquanta=None, Kmoment=None, Parity=None):
-        self.Lsites = Lsites                                               # number of sites
-        self.Nmax = Nmax                                                   # maximum occupancy for any site
+        self.Lsites = Lsites   # number of sites
+        self.Nmax = Nmax       # maximum occupancy for any site
         
         if Diag == 'full':
-            self.Dim = dim_nmax(Lsites, Nmax) # dimension of Hilbert space
-            self.basis = gen_basis_nmax(Lsites, Nmax, self.Dim)     # full Nmax basis
+            self.Dim = dim_nmax(Lsites, Nmax)                    # dimension of Hilbert space
+            self.basis = gen_basis_nmax(Lsites, Nmax, self.Dim)  # Nmax full basis
             if Sym in ('N', 'kN', 'pkN'):
                 self.subspaces = list()
                 for n in range(Lsites * Nmax + 1):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # N Nmax Hilbert subspaces
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # Nmax N-block Hilbert subspaces
 
         elif Diag == 'N':
-            self.Nquanta = Nquanta                                         # total number of quanta
+            self.Nquanta = Nquanta  # total number of quanta
             if Nquanta <= Nmax:
-                self.Dim = dim_nblock(Lsites, Nquanta) # dimension of Hilbert space
+                self.Dim = dim_nblock(Lsites, Nquanta)                    # dimension of Hilbert space
                 self.basis = gen_basis_nblock(Lsites, Nquanta, self.Dim)  # N-block basis
             else:
-                self.basis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)      # N Nmax basis
-                self.Dim = len(self.basis) # dimension of Hilbert space
+                self.basis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta) # Nmax N-block basis
+                self.Dim = len(self.basis)                                # dimension of Hilbert space
             if Sym in ('kN', 'pkN'):
                 self.subspaces = list()
                 for k in range(Lsites):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN Nmax Hilbert subspaces
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # Nmax kN-block Hilbert subspaces
                 
         elif Diag == 'kN':
-            self.Nquanta = Nquanta                   # total number of quanta
-            self.Kmoment = Kmoment                   # crystal momentum k
+            self.Nquanta = Nquanta   # total number of quanta
+            self.Kmoment = Kmoment   # crystal momentum k
             if Nquanta <= Nmax:
-                self.basis, self.periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment)          # kN-block basis
+                self.basis, self.periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment)              # kN-block basis
             else:
-                self.basis, self.periodicities = gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment)   # kN Nmax basis
-            self.Dim = len(self.basis) # dimension of Hilbert space
+                self.basis, self.periodicities = gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment)   # Nmax kN-block basis
+            self.Dim = len(self.basis)   # dimension of Hilbert space
             if Sym == 'pkN':
                 self.subspaces = list()
                 for p in (-1, 1):
                     self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Nmax Hilbert subspaces
 
         elif Diag == 'pkN':
-            self.Nquanta = Nquanta                   # total number of quanta
-            self.Kmoment = Kmoment                   # crystal momentum k
-            self.Parity = Parity                     # parity p
+            self.Nquanta = Nquanta     # total number of quanta
+            self.Kmoment = Kmoment     # crystal momentum k
+            self.Parity = Parity       # parity p
             # ADD BASIS GENERATION
             # ADD BASIS DIMENSION
 
         self.map = dict()
         for a in range(self.Dim):
-            self.map[tuple(self.basis[a])] = a                             # mapping fock states to indices
+            self.map[tuple(self.basis[a])] = a       # mapping fock states to indices
 
 
     ## given index return fock state
@@ -532,34 +532,34 @@ class HilbertSpace:
 class HilbertSubspace(HilbertSpace):
     ## construct a Hilbert subspace with given parameters
     def __init__(self, superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None, Parity=None):
-        self.Lsites = Lsites                                               # number of sites
-        self.Nmax = Nmax                                                   # maximum occupancy for any site
-        self.Nquanta = Nquanta                                             # total number of quanta
-        self.superbasis = superbasis
+        self.Lsites = Lsites             # number of sites
+        self.Nmax = Nmax                 # maximum occupancy for any site
+        self.Nquanta = Nquanta           # total number of quanta
+        self.superbasis = superbasis     # basis from which the subbasis is generated
 
         if Diag == 'N':
-            self.basis = gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta)      # N Nmax basis
+            self.basis = gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta)      # Nmax N-block basis
             if Sym in ('kN', 'pkN'):
                 self.subspaces = list()
                 for k in range(Lsites):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN Nmax Hilbert subspaces
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # Nmax kN-block Hilbert subspaces
                 
         elif Diag == 'kN':
             self.Kmoment = Kmoment        # crystal momentum k
-            self.basis, self.periodicities = gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment)            # kN Nmax basis
+            self.basis, self.periodicities = gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment)    # Nmax kN-block basis
             if Sym == 'pkN':
                 self.subspaces = list()
                 for p in (-1, 1):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Nmax Hilbert subspaces
+                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # Nmax pkN-block Hilbert subspaces
 
         elif Diag == 'pkN':
-            self.Kmoment = Kmoment        # crystal momentum k
-            self.Parity = Parity          # parity p
+            self.Kmoment = Kmoment    # crystal momentum k
+            self.Parity = Parity      # parity p
             # ADD BASIS GENERATION
 
-        self.Dim = len(self.basis)                                         # dimension of Hilbert space
+        self.Dim = len(self.basis)    # dimension of Hilbert space
         self.map = dict()
         for a in range(self.Dim):
-            self.map[tuple(self.basis[a])] = a                             # mapping fock states to indices
+            self.map[tuple(self.basis[a])] = a     # mapping fock states to indices
 
 
