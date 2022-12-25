@@ -4,40 +4,90 @@ import numpy as np
 
 #-----------------------------------------------------------------------------------------------
 ## lowering operator
+# i = site
+# s_state = given state
 #-----------------------------------------------------------------------------------------------
-def op_lower(i, fock):
-    new_fock = np.copy(fock)
-    new_fock[i] -= 1
-    return new_fock
+def op_lower(i, s_state):
+    t_state = np.copy(s_state)
+    t_state[i] -= 1
+    return t_state
 
 
 #-----------------------------------------------------------------------------------------------
 ## raising operator
+# i = site
+# s_state = given state
 #-----------------------------------------------------------------------------------------------
-def op_raise(i, fock):
-    new_fock = np.copy(fock)
-    new_fock[i] += 1
-    return new_fock
+def op_raise(i, s_state):
+    t_state = np.copy(s_state)
+    t_state[i] += 1
+    return t_state
 
 
 #-----------------------------------------------------------------------------------------------
 ## translation operator
+# s_state = given state
+# Lsites = number of sites
 #-----------------------------------------------------------------------------------------------
-def op_translation(fock, Lsites):
-    new_fock = np.copy(fock)
+def op_translation(s_state, Lsites):
+    t_state = np.copy(s_state)
     for i in range(Lsites):
-        new_fock[i] = fock[(i - 1) % Lsites] # PBC
-    return new_fock
+        t_state[i] = s_state[(i - 1) % Lsites] # PBC
+    return t_state
+
+
+#-----------------------------------------------------------------------------------------------
+## check for the period of the representative state of the given state
+## representative state is the highest integer tuple among all states linked by translations
+# s_state = given state
+# Lsites = number of sites
+# Kmoment = crystal momentum
+#-----------------------------------------------------------------------------------------------
+def checkstate_Period(s_state, Lsites, Kmoment):
+    Period = -1
+    t_state = np.copy(s_state)
+    for i in range(1, Lsites + 1):
+        t_state = op_translation(t_state, Lsites)
+        if tuple(t_state) > tuple(s_state):
+            return Period
+        elif tuple(t_state) == tuple(s_state):
+            if (Kmoment % (Lsites / i)) == 0:
+                Period = i
+                return Period
+            else:
+                return Period
+
+
+#-----------------------------------------------------------------------------------------------
+## find representative state for given state
+## find the Phase of translation from the representative state to the given state
+## representative state is the highest integer tuple among all states linked by translations
+# s_state = given state
+# Lsites = number of sites
+#-----------------------------------------------------------------------------------------------
+def findstate_representative_Phase(s_state, Lsites):
+    r_state = np.copy(s_state)
+    t_state = np.copy(s_state)
+    Phase = 0
+    for i in range(1, Lsites + 1):
+        t_state = op_translation(t_state, Lsites)
+        if tuple(t_state) > tuple(r_state):
+            r_state = np.copy(t_state)
+            Phase = i
+    
+    return (r_state, Phase)
 
 
 #-----------------------------------------------------------------------------------------------
 ## reflection operator
+# s_state = given state
+# Lsites = number of sites
 #-----------------------------------------------------------------------------------------------
-def op_reflection(fock, Lsites):
-    new_fock = np.copy(fock)
+def op_reflection(s_state, Lsites):
+    t_state = np.copy(s_state)
     for i in range(Lsites):
-        new_fock[i] = fock[Lsites - 1 - i]
-    return new_fock
+        t_state[i] = s_state[Lsites - 1 - i]
+    return t_state
 
 
 #-----------------------------------------------------------------------------------------------
@@ -45,7 +95,7 @@ def op_reflection(fock, Lsites):
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
 #-----------------------------------------------------------------------------------------------
-def dim_nmax(Lsites, Nmax):
+def dim_full_nmax(Lsites, Nmax):
     return (Nmax + 1)**Lsites
 
 
@@ -57,23 +107,23 @@ def dim_nmax(Lsites, Nmax):
 # Nmax = maximum occupancy for every site
 # Dim = Hilbert space dimension
 #-----------------------------------------------------------------------------------------------
-def gen_basis_nmax(Lsites, Nmax, Dim):
+def gen_basis_full_nmax(Lsites, Nmax, Dim):
     if Lsites > 1:
-        basis = np.zeros((Dim, Lsites), dtype=int)
+        Basis = np.zeros((Dim, Lsites), dtype=int)
         a = 0
         for n in range(Nmax + 1):
             l = Lsites - 1
             d = Dim // (Nmax + 1)
-            basis[a:a + d, 0] = Nmax - n
-            basis[a:a + d, 1:] = gen_basis_nmax(l, Nmax, d)
+            Basis[a:a + d, 0] = Nmax - n
+            Basis[a:a + d, 1:] = gen_basis_full_nmax(l, Nmax, d)
             a += d
     else:
         Dim = Nmax + 1
-        basis = np.zeros((Dim, 1), dtype=int)
+        Basis = np.zeros((Dim, 1), dtype=int)
         for n in range(Nmax + 1):
-            basis[n] = Nmax - n
+            Basis[n] = Nmax - n
 
-    return basis
+    return Basis
 
 
 #-----------------------------------------------------------------------------------------------
@@ -95,18 +145,18 @@ def dim_nblock(Lsites, Nquanta):
 #-----------------------------------------------------------------------------------------------
 def gen_basis_nblock(Lsites, Nquanta, Dim):
     if Lsites > 1:
-        basis = np.zeros((Dim, Lsites), dtype=int)
+        Basis = np.zeros((Dim, Lsites), dtype=int)
         a = 0
         for n in range(Nquanta + 1):
             l = Lsites - 1
             d = dim_nblock(l, n)
-            basis[a:a + d, 0] = Nquanta - n
-            basis[a:a + d, 1:] = gen_basis_nblock(l, n, d)
+            Basis[a:a + d, 0] = Nquanta - n
+            Basis[a:a + d, 1:] = gen_basis_nblock(l, n, d)
             a += d
     else:
-        basis = np.array([Nquanta], dtype=int)
+        Basis = np.array([Nquanta], dtype=int)
     
-    return basis
+    return Basis
 
 
 #-----------------------------------------------------------------------------------------------
@@ -119,55 +169,61 @@ def gen_basis_nblock(Lsites, Nquanta, Dim):
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
 def gen_basis_nblock_nmax(Lsites, Nmax, Nquanta):
-    if Nquanta < Nmax:
-        d = dim_nblock(Lsites, Nquanta)
-        return gen_basis_nblock(Lsites, Nquanta, d)
+    if Nquanta <= Nmax:
+        Dim = dim_nblock(Lsites, Nquanta)
+        return (Dim, gen_basis_nblock(Lsites, Nquanta, Dim))
     
     if Lsites > 1:
         Nmin = Nquanta - Nmax
+        d_list = list()
         basis_list = list()
         basis_list_len = Nmax + 1
         for n in range(Nmin, Nquanta + 1):
-            block_subbasis = gen_basis_nblock_nmax(Lsites - 1, Nmax, n)
-            if type(block_subbasis) == type(None):
+            d, subbasis = gen_basis_nblock_nmax(Lsites - 1, Nmax, n)
+            if d < 1:
                 basis_list_len -= 1
                 continue
 
-            d = len(block_subbasis)
-            block_basis = np.zeros((d, Lsites), dtype=int)
+            basis_block = np.zeros((d, Lsites), dtype=int)
             for a in range(d):
-                block_basis[a, 0] = Nquanta - n
-            block_basis[:, 1:] = block_subbasis
-            basis_list.append(block_basis)
+                basis_block[a, 0] = Nquanta - n
+            basis_block[:, 1:] = subbasis
+            d_list.append(d)
+            basis_list.append(basis_block)
 
-        basis = basis_list[0]
-        for i in range(1, basis_list_len):
-            basis = np.append(basis, basis_list[i], axis=0)
+        Dim = np.sum(d_list)
+        Basis = np.zeros((Dim, Lsites), dtype=int)
+        a = 0
+        for i in range(basis_list_len):
+            Basis[a:a + d_list[i], :] = basis_list[i]
+            a += d_list[i]
+        
+        return (Dim, Basis)
 
     else:
         if Nquanta > Nmax:
-            return None
+            return (0, None)
         
-        basis = np.array([Nquanta], dtype=int)
-
-    return basis
+        return (1, np.array([Nquanta], dtype=int))
 
 
 #-----------------------------------------------------------------------------------------------
 ## generate Nmax N-block basis
 ## with conservation of the total number of quanta (N)
 ## with maximum occupancy for every site (Nmax)
-## from given full Nmax basis (NOT SCALABLE)
-# superbasis = full Nmax basis
+## from given full basis (NOT SCALABLE)
+# superbasis = basis from which the subbasis is generated
 # Nquanta = total number of quanta
 #-----------------------------------------------------------------------------------------------
-def gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta):
+def gen_basis_nblock_from_full(Superbasis, Nquanta):
+    Dim = 0
     basis_list = list()
-    for r_state in superbasis:
-        if np.sum(r_state) == Nquanta:
-            basis_list.append(np.copy(r_state))
+    for s_state in Superbasis:
+        if np.sum(s_state) == Nquanta:
+            Dim += 1
+            basis_list.append(np.copy(s_state))
     
-    return np.array(basis_list, dtype=int)
+    return (Dim, np.array(basis_list, dtype=int))
 
 
 #-----------------------------------------------------------------------------------------------
@@ -175,104 +231,31 @@ def gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta):
 ## with conservation of the crystal momentum (k)
 ## with conservation of the total number of quanta (N)
 ## by creating N-block basis (SCALABLE)
+## from given N-block basis (SCALABLE)
 # Lsites = number of sites
 # Nquanta = total number of quanta
 # Kmoment = crystal momentum
-#-----------------------------------------------------------------------------------------------
-def gen_basis_knblock(Lsites, Nquanta, Kmoment):
-    d = dim_nblock(Lsites, Nquanta)
-    superbasis = gen_basis_nblock(Lsites, Nquanta, d)
-    basis_list = list()
-    periodicity_list = list()
-    for r_state in superbasis:
-        Period = -1
-        t_state = np.copy(r_state)
-        for i in range(1, Lsites + 1):
-            t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) > tuple(r_state):
-                break
-            elif tuple(t_state) == tuple(r_state):
-                if (Kmoment % (Lsites / i)) == 0:
-                    Period = i
-                    break
-                else:
-                    break
-    
-        if Period >= 0:
-            basis_list.append(t_state)
-            periodicity_list.append(Period)
-
-    return (np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int))
-
-
-#-----------------------------------------------------------------------------------------------
-## generate Nmax kN-block basis
-## with conservation of the crystal momentum (k)
-## with conservation of the total number of quanta (N)
-## with maximum occupancy for every site (Nmax)
-## from given N Nmax basis (SCALABLE)
-# Lsites = number of sites
+# superbasis = basis from which the subbasis is generated
 # Nmax = maximum occupancy for every site
-# Nquanta = total number of quanta
-# Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
-def gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment):
-    superbasis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)
+def gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=None, Nmax=None):
+    if Superbasis is None:
+        if Nmax is None:
+            d = dim_nblock(Lsites, Nquanta)
+            Superbasis = gen_basis_nblock(Lsites, Nquanta, d)
+        else:
+            d, Superbasis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)
+    Dim = 0
     basis_list = list()
     periodicity_list = list()
-    for r_state in superbasis:
-        Period = -1
-        t_state = np.copy(r_state)
-        for i in range(1, Lsites + 1):
-            t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) > tuple(r_state):
-                break
-            elif tuple(t_state) == tuple(r_state):
-                if (Kmoment % (Lsites / i)) == 0:
-                    Period = i
-                    break
-                else:
-                    break
-    
+    for s_state in Superbasis:
+        Period = checkstate_Period(s_state, Lsites, Kmoment)
         if Period >= 0:
-            basis_list.append(t_state)
+            Dim += 1
+            basis_list.append(s_state)
             periodicity_list.append(Period)
 
-    return (np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int))
-
-
-#-----------------------------------------------------------------------------------------------
-## generate Nmax kN-block basis
-## with conservation of the crystal momentum (k)
-## with conservation of the total number of quanta (N)
-## with maximum occupancy for every site (Nmax)
-## from given N Nmax basis (SCALABLE)
-# superbasis = N Nmax basis
-# Lsites = number of sites
-# Kmoment = crystal momentum
-#-----------------------------------------------------------------------------------------------
-def gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment):
-    basis_list = list()
-    periodicity_list = list()
-    for r_state in superbasis:
-        Period = -1
-        t_state = np.copy(r_state)
-        for i in range(1, Lsites + 1):
-            t_state = op_translation(t_state, Lsites)
-            if tuple(t_state) > tuple(r_state):
-                break
-            elif tuple(t_state) == tuple(r_state):
-                if (Kmoment % (Lsites / i)) == 0:
-                    Period = i
-                    break
-                else:
-                    break
-    
-        if Period >= 0:
-            basis_list.append(t_state)
-            periodicity_list.append(Period)
-
-    return (np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int))
+    return (Dim, np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int))
 
 
 #-----------------------------------------------------------------------------------------------
@@ -294,38 +277,36 @@ class HilbertSpace:
         self.Nmax = Nmax       # maximum occupancy for any site
         
         if Diag == 'full':
-            self.Dim = dim_nmax(Lsites, Nmax)                    # dimension of Hilbert space
-            self.basis = gen_basis_nmax(Lsites, Nmax, self.Dim)  # Nmax full basis
+            self.Dim = dim_full_nmax(Lsites, Nmax)                    # dimension of Hilbert space
+            self.Basis = gen_basis_full_nmax(Lsites, Nmax, self.Dim)  # Nmax full basis
             if Sym in ('N', 'kN', 'pkN'):
-                self.subspaces = list()
+                self.Subspaces = list()
                 for n in range(Lsites * Nmax + 1):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # Nmax N-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # N-block Hilbert subspaces
 
         elif Diag == 'N':
             self.Nquanta = Nquanta  # total number of quanta
             if Nquanta <= Nmax:
                 self.Dim = dim_nblock(Lsites, Nquanta)                    # dimension of Hilbert space
-                self.basis = gen_basis_nblock(Lsites, Nquanta, self.Dim)  # N-block basis
+                self.Basis = gen_basis_nblock(Lsites, Nquanta, self.Dim)  # N-block basis
             else:
-                self.basis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta) # Nmax N-block basis
-                self.Dim = len(self.basis)                                # dimension of Hilbert space
+                self.Dim, self.Basis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta) # dimension of Hilbert space # Nmax N-block basis
             if Sym in ('kN', 'pkN'):
-                self.subspaces = list()
+                self.Subspaces = list()
                 for k in range(Lsites):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # Nmax kN-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN-block Hilbert subspaces
                 
         elif Diag == 'kN':
             self.Nquanta = Nquanta   # total number of quanta
             self.Kmoment = Kmoment   # crystal momentum k
             if Nquanta <= Nmax:
-                self.basis, self.periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment)              # kN-block basis
+                self.Dim, self.Basis, self.Periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment)             # dimension of Hilbert space # kN-block basis
             else:
-                self.basis, self.periodicities = gen_basis_knblock_nmax(Lsites, Nmax, Nquanta, Kmoment)   # Nmax kN-block basis
-            self.Dim = len(self.basis)   # dimension of Hilbert space
+                self.Dim, self.Basis, self.Periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment, Nmax=Nmax)  # dimension of Hilbert space # Nmax kN-block basis
             if Sym == 'pkN':
-                self.subspaces = list()
+                self.Subspaces = list()
                 for p in (-1, 1):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Nmax Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Hilbert subspaces
 
         elif Diag == 'pkN':
             self.Nquanta = Nquanta     # total number of quanta
@@ -336,75 +317,75 @@ class HilbertSpace:
 
         self.map = dict()
         for a in range(self.Dim):
-            self.map[tuple(self.basis[a])] = a       # mapping fock states to indices
+            self.map[tuple(self.Basis[a])] = a       # mapping fock states to indices
 
 
     ## given index return fock state
-    def get_fock_state(self, j):
-        fock = np.copy(self.basis[j])
-        return fock
+    def get_fock_state(self, a):
+        state = np.copy(self.Basis[a])
+        return state
 
 
     ## Coulomb interaction
     def op_interaction(self, U):
-        matrika = np.zeros((self.Dim, self.Dim), dtype=float)
+        Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            fock = self.get_fock_state(a)
-            amplitude = 0.0
+            state = self.get_fock_state(a)
+            Amplitude = 0.0
             for i in range(self.Lsites):
-                amplitude += fock[i] * (fock[i] - 1)
+                Amplitude += state[i] * (state[i] - 1)
             
-            matrika[a, a] = 0.5 * U * amplitude
+            Matrika[a, a] = 0.5 * U * Amplitude
 
-        return matrika
+        return Matrika
 
 
     ## Hamiltonian with OBC
     def op_kinetic_obc(self, t):
-        matrika = np.zeros((self.Dim, self.Dim), dtype=float)
+        Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            fock_a = self.get_fock_state(a)
+            state_a = self.get_fock_state(a)
 
-            if fock_a[0] > 0:
-                amplitude1 = fock_a[0]
-                lower_fock = op_lower(0, fock_a)
+            if state_a[0] > 0:
+                amplitude1 = state_a[0]
+                lower_state = op_lower(0, state_a)
                 j = 1 # OBC
-                if lower_fock[j] < self.Nmax:
-                    amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1))
-                    fock_b = op_raise(j, lower_fock)
-                    b = self.map[tuple(fock_b)]
-                    matrika[a, b] += - t * amplitude
+                if lower_state[j] < self.Nmax:
+                    Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
+                    state_b = op_raise(j, lower_state)
+                    b = self.map[tuple(state_b)]
+                    Matrika[a, b] += - t * Amplitude
 
-            if fock_a[self.Lsites - 1] > 0:
-                amplitude1 = fock_a[self.Lsites - 1]
-                lower_fock = op_lower(self.Lsites - 1, fock_a)
+            if state_a[self.Lsites - 1] > 0:
+                amplitude1 = state_a[self.Lsites - 1]
+                lower_state = op_lower(self.Lsites - 1, state_a)
                 j = self.Lsites - 2 # OBC
-                if lower_fock[j] < self.Nmax:
-                    amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1))
-                    fock_b = op_raise(j, lower_fock)
-                    b = self.map[tuple(fock_b)]
-                    matrika[a, b] += - t * amplitude
+                if lower_state[j] < self.Nmax:
+                    Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
+                    state_b = op_raise(j, lower_state)
+                    b = self.map[tuple(state_b)]
+                    Matrika[a, b] += - t * Amplitude
                 
             for i in range(1, self.Lsites - 1):
-                if fock_a[i] > 0:
-                    amplitude1 = fock_a[i]
-                    lower_fock = op_lower(i, fock_a)
+                if state_a[i] > 0:
+                    amplitude1 = state_a[i]
+                    lower_state = op_lower(i, state_a)
 
                     j = i + 1 # OBC
-                    if lower_fock[j] < self.Nmax:
-                        amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1))
-                        fock_b = op_raise(j, lower_fock)
+                    if lower_state[j] < self.Nmax:
+                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
+                        fock_b = op_raise(j, lower_state)
                         b = self.map[tuple(fock_b)]
-                        matrika[a, b] += - t * amplitude
+                        Matrika[a, b] += - t * Amplitude
 
                     j = i - 1 # OBC
-                    if lower_fock[j] < self.Nmax:
-                        amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1))
-                        fock_b = op_raise(j, lower_fock)
+                    if lower_state[j] < self.Nmax:
+                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
+                        fock_b = op_raise(j, lower_state)
                         b = self.map[tuple(fock_b)]
-                        matrika[a, b] += - t * amplitude
+                        Matrika[a, b] += - t * Amplitude
 
-        return matrika
+        return Matrika
 
     def op_hamiltonian_obc(self, t, inter=False, U=None):
         if inter:
@@ -415,29 +396,29 @@ class HilbertSpace:
 
     ## Hamiltonian with PBC
     def op_kinetic_pbc(self, t):
-        matrika = np.zeros((self.Dim, self.Dim), dtype=float)
+        Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            fock_a = self.get_fock_state(a)
+            state_a = self.get_fock_state(a)
             for i in range(self.Lsites):
-                if fock_a[i] > 0:
-                    amplitude1 = fock_a[i]
-                    lower_fock = op_lower(i, fock_a)
+                if state_a[i] > 0:
+                    amplitude1 = state_a[i]
+                    lower_state = op_lower(i, state_a)
 
                     j = (i + 1) % self.Lsites # PBC
-                    if lower_fock[j] < self.Nmax:
-                        amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1))
-                        fock_b = op_raise(j, lower_fock)
-                        b = self.map[tuple(fock_b)]
-                        matrika[a, b] += - t * amplitude
+                    if lower_state[j] < self.Nmax:
+                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
+                        state_b = op_raise(j, lower_state)
+                        b = self.map[tuple(state_b)]
+                        Matrika[a, b] += - t * Amplitude
 
                     j = (i + self.Lsites - 1) % self.Lsites # PBC
-                    if lower_fock[j] < self.Nmax:
-                        amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1))
-                        fock_b = op_raise(j, lower_fock)
-                        b = self.map[tuple(fock_b)]
-                        matrika[a, b] += - t * amplitude
+                    if lower_state[j] < self.Nmax:
+                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
+                        state_b = op_raise(j, lower_state)
+                        b = self.map[tuple(state_b)]
+                        Matrika[a, b] += - t * Amplitude
 
-        return matrika
+        return Matrika
 
     def op_hamiltonian_pbc(self, t, inter=False, U=None):
         if inter:
@@ -448,66 +429,52 @@ class HilbertSpace:
 
     ## Coulomb interaction for kN-block Hamiltonian
     def op_interaction_k(self, U):
-        matrika = np.zeros((self.Dim, self.Dim), dtype=float)
+        Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            fock = self.get_fock_state(a)
-            amplitude = 0.0
+            state = self.get_fock_state(a)
+            Amplitude = 0.0
             for i in range(self.Lsites):
-                amplitude += fock[i] * (fock[i] - 1)
+                Amplitude += state[i] * (state[i] - 1)
             
-            matrika[a, a] = 0.5 * U * amplitude
+            Matrika[a, a] = 0.5 * U * Amplitude
 
-        return matrika
-
-
-    ## find representative state for states linked by translations
-    def representative(self, fock):
-        rep_fock = np.copy(fock)
-        new_fock = np.copy(fock)
-        Phase = 0
-        for i in range(1, self.Lsites + 1):
-            new_fock = op_translation(new_fock, self.Lsites)
-            if tuple(new_fock) < tuple(rep_fock):
-                rep_fock = np.copy(new_fock)
-                Phase = i
-        
-        return (rep_fock, Phase)
+        return Matrika
 
 
     ## kN-block Hamiltonian
     def op_kinetic_k(self, t):
-        matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
+        Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
-            fock_a = self.get_fock_state(a)
-            Period_a = self.periodicities[a]
+            state_a = self.get_fock_state(a)
+            Period_a = self.Periodicities[a]
             for i in range(self.Lsites):
-                if fock_a[i] > 0:
-                    amplitude1 = fock_a[i]
-                    lower_fock = op_lower(i, fock_a)
+                if state_a[i] > 0:
+                    amplitude1 = state_a[i]
+                    lower_state = op_lower(i, state_a)
 
                     j = (i + 1) % self.Lsites # PBC
-                    if lower_fock[j] < self.Nmax:
-                        new_fock = op_raise(j, lower_fock)
-                        fock_b, Phase = self.representative(new_fock)
-                        if tuple(fock_b) in self.map:
-                            b = self.map[tuple(fock_b)]
-                            Period_b = self.periodicities[b]
-                            amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1) * Period_a / Period_b)
+                    if lower_state[j] < self.Nmax:
+                        new_state = op_raise(j, lower_state)
+                        state_b, Phase = findstate_representative_Phase(new_state, self.Lsites)
+                        if tuple(state_b) in self.map:
+                            b = self.map[tuple(state_b)]
+                            Period_b = self.Periodicities[b]
+                            Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1) * Period_a / Period_b)
                             Arg = 2.0 * np.pi * self.Kmoment * Phase / self.Lsites
-                            matrika[a, b] += - t * amplitude * complex(np.cos(Arg), np.sin(Arg))
+                            Matrika[a, b] += - t * Amplitude * complex(np.cos(Arg), np.sin(Arg))
 
                     j = (i + self.Lsites - 1) % self.Lsites # PBC
-                    if lower_fock[j] < self.Nmax:
-                        new_fock = op_raise(j, lower_fock)
-                        fock_b, Phase = self.representative(new_fock)
-                        if tuple(fock_b) in self.map:
-                            b = self.map[tuple(fock_b)]
-                            Period_b = self.periodicities[b]
-                            amplitude = np.sqrt(amplitude1 * (lower_fock[j] + 1) * Period_a / Period_b)
+                    if lower_state[j] < self.Nmax:
+                        new_state = op_raise(j, lower_state)
+                        state_b, Phase = findstate_representative_Phase(new_state, self.Lsites)
+                        if tuple(state_b) in self.map:
+                            b = self.map[tuple(state_b)]
+                            Period_b = self.Periodicities[b]
+                            Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1) * Period_a / Period_b)
                             Arg = 2.0 * np.pi * self.Kmoment * Phase / self.Lsites
-                            matrika[a, b] += - t * amplitude * complex(np.cos(Arg), np.sin(Arg))
+                            Matrika[a, b] += - t * Amplitude * complex(np.cos(Arg), np.sin(Arg))
 
-        return matrika
+        return Matrika
 
     def op_hamiltonian_k(self, t, inter=False, U=None):
         if inter:
@@ -531,35 +498,35 @@ class HilbertSpace:
 #-----------------------------------------------------------------------------------------------
 class HilbertSubspace(HilbertSpace):
     ## construct a Hilbert subspace with given parameters
-    def __init__(self, superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None, Parity=None):
+    def __init__(self, Superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None, Parity=None):
         self.Lsites = Lsites             # number of sites
         self.Nmax = Nmax                 # maximum occupancy for any site
         self.Nquanta = Nquanta           # total number of quanta
-        self.superbasis = superbasis     # basis from which the subbasis is generated
+        self.Superbasis = Superbasis     # basis from which the subbasis is generated
 
         if Diag == 'N':
-            self.basis = gen_basis_nblock_nmax_from_nmax(superbasis, Nquanta)      # Nmax N-block basis
+            self.Dim, self.Basis = gen_basis_nblock_from_full(Superbasis, Nquanta)      # N-block basis
             if Sym in ('kN', 'pkN'):
-                self.subspaces = list()
+                self.Subspaces = list()
                 for k in range(Lsites):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # Nmax kN-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN-block Hilbert subspaces
                 
         elif Diag == 'kN':
             self.Kmoment = Kmoment        # crystal momentum k
-            self.basis, self.periodicities = gen_basis_knblock_nmax_from_nblock_nmax(superbasis, Lsites, Kmoment)    # Nmax kN-block basis
+            self.Dim, self.Basis, self.Periodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=Superbasis)    # kN-block basis
             if Sym == 'pkN':
-                self.subspaces = list()
+                self.Subspaces = list()
                 for p in (-1, 1):
-                    self.subspaces.append(HilbertSubspace(self.basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # Nmax pkN-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN-block Hilbert subspaces
 
         elif Diag == 'pkN':
             self.Kmoment = Kmoment    # crystal momentum k
             self.Parity = Parity      # parity p
             # ADD BASIS GENERATION
+            # ADD BASIS DIMENSION
 
-        self.Dim = len(self.basis)    # dimension of Hilbert space
         self.map = dict()
         for a in range(self.Dim):
-            self.map[tuple(self.basis[a])] = a     # mapping fock states to indices
+            self.map[tuple(self.Basis[a])] = a     # mapping fock states to indices
 
 
