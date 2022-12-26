@@ -37,15 +37,16 @@ def op_translation(s_state, Lsites):
 
 
 #-----------------------------------------------------------------------------------------------
-## check for the period of the representative state of the given state
+## check if the given state is the representative state
+## calculate the period of the representative state
 ## representative state is the highest integer tuple among all states linked by translations
 # s_state = given state
 # Lsites = number of sites
 # Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
-def checkstate_Period(s_state, Lsites, Kmoment):
+def checkstate_representative_Period(s_state, Lsites, Kmoment):
     Period = -1
-    t_state = np.copy(s_state)
+    t_state = s_state
     for i in range(1, Lsites + 1):
         t_state = op_translation(t_state, Lsites)
         if tuple(t_state) > tuple(s_state):
@@ -59,20 +60,20 @@ def checkstate_Period(s_state, Lsites, Kmoment):
 
 
 #-----------------------------------------------------------------------------------------------
-## find representative state for given state
-## find the Phase of translation from the representative state to the given state
+## find the representative state for the given state
+## calculate the Phase of translation from the representative state to the given state
 ## representative state is the highest integer tuple among all states linked by translations
 # s_state = given state
 # Lsites = number of sites
 #-----------------------------------------------------------------------------------------------
 def findstate_representative_Phase(s_state, Lsites):
     r_state = np.copy(s_state)
-    t_state = np.copy(s_state)
+    t_state = s_state
     Phase = 0
     for i in range(1, Lsites + 1):
         t_state = op_translation(t_state, Lsites)
         if tuple(t_state) > tuple(r_state):
-            r_state = np.copy(t_state)
+            r_state = t_state
             Phase = i
     
     return (r_state, Phase)
@@ -249,7 +250,7 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=None, Nmax=None):
     basis_list = list()
     periodicity_list = list()
     for s_state in Superbasis:
-        Period = checkstate_Period(s_state, Lsites, Kmoment)
+        Period = checkstate_representative_Period(s_state, Lsites, Kmoment)
         if Period >= 0:
             Dim += 1
             basis_list.append(s_state)
@@ -320,17 +321,11 @@ class HilbertSpace:
             self.map[tuple(self.Basis[a])] = a       # mapping fock states to indices
 
 
-    ## given index return fock state
-    def get_fock_state(self, a):
-        state = np.copy(self.Basis[a])
-        return state
-
-
     ## Coulomb interaction
     def op_interaction(self, U):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            state = self.get_fock_state(a)
+            state = self.Basis[a]
             Amplitude = 0.0
             for i in range(self.Lsites):
                 Amplitude += state[i] * (state[i] - 1)
@@ -344,7 +339,7 @@ class HilbertSpace:
     def op_kinetic_obc(self, t):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            state_a = self.get_fock_state(a)
+            state_a = self.Basis[a]
 
             if state_a[0] > 0:
                 amplitude1 = state_a[0]
@@ -398,7 +393,7 @@ class HilbertSpace:
     def op_kinetic_pbc(self, t):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            state_a = self.get_fock_state(a)
+            state_a = self.Basis[a]
             for i in range(self.Lsites):
                 if state_a[i] > 0:
                     amplitude1 = state_a[i]
@@ -431,7 +426,7 @@ class HilbertSpace:
     def op_interaction_k(self, U):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            state = self.get_fock_state(a)
+            state = self.Basis[a]
             Amplitude = 0.0
             for i in range(self.Lsites):
                 Amplitude += state[i] * (state[i] - 1)
@@ -445,7 +440,7 @@ class HilbertSpace:
     def op_kinetic_k(self, t):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
-            state_a = self.get_fock_state(a)
+            state_a = self.Basis[a]
             Period_a = self.Periodicities[a]
             for i in range(self.Lsites):
                 if state_a[i] > 0:
