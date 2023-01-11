@@ -44,7 +44,7 @@ def op_translation(s_state, Lsites):
 # Lsites = number of sites
 # Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
-def checkstate_representative_Period(s_state, Lsites, Kmoment):
+def checkstate(s_state, Lsites, Kmoment):
     Period = -1
     t_state = s_state
     for i in range(1, Lsites + 1):
@@ -66,7 +66,7 @@ def checkstate_representative_Period(s_state, Lsites, Kmoment):
 # s_state = given state
 # Lsites = number of sites
 #-----------------------------------------------------------------------------------------------
-def findstate_representative_Phase(s_state, Lsites):
+def representative(s_state, Lsites):
     r_state = np.copy(s_state)
     t_state = s_state
     Phase = 0
@@ -250,7 +250,7 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=None, Nmax=None):
     basis_list = list()
     periodicity_list = list()
     for s_state in Superbasis:
-        Period = checkstate_representative_Period(s_state, Lsites, Kmoment)
+        Period = checkstate(s_state, Lsites, Kmoment)
         if Period >= 0:
             Dim += 1
             basis_list.append(s_state)
@@ -316,23 +316,34 @@ class HilbertSpace:
             # ADD BASIS GENERATION
             # ADD BASIS DIMENSION
 
-        self.map = dict()
+        self.Findstate = dict()
         for a in range(self.Dim):
-            self.map[tuple(self.Basis[a])] = a       # mapping fock states to indices
+            self.Findstate[tuple(self.Basis[a])] = a       # mapping fock states to indices
 
 
     ## Coulomb interaction
     def op_interaction(self, U):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
-            state = self.Basis[a]
-            Amplitude = 0.0
-            for i in range(self.Lsites):
-                Amplitude += state[i] * (state[i] - 1)
-            
-            Matrika[a, a] = 0.5 * U * Amplitude
+            state_a = self.Basis[a]            
+            Matrika[a, a] = 0.5 * U * np.sum(state_a * (state_a - 1))
 
         return Matrika
+
+
+    ## hopping operator
+    def __op_hop(self, t, i, d, a, state_a, Matrika):
+        if state_a[i] > 0:
+            n_i = state_a[i]
+            t_state = op_lower(i, state_a)
+            for d_j in np.array(d, dtype=int):
+                j = i + d_j
+                j = j - round(j / self.Lsites) * self.Lsites # PBC IF NEEDED
+                if t_state[j] < self.Nmax:
+                    n_j = t_state[j]
+                    state_b = op_raise(j, t_state)
+                    b = self.Findstate[tuple(state_b)]
+                    Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1))
 
 
     ## Hamiltonian with OBC
@@ -340,45 +351,10 @@ class HilbertSpace:
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]
-
-            if state_a[0] > 0:
-                amplitude1 = state_a[0]
-                lower_state = op_lower(0, state_a)
-                j = 1 # OBC
-                if lower_state[j] < self.Nmax:
-                    Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
-                    state_b = op_raise(j, lower_state)
-                    b = self.map[tuple(state_b)]
-                    Matrika[a, b] += - t * Amplitude
-
-            if state_a[self.Lsites - 1] > 0:
-                amplitude1 = state_a[self.Lsites - 1]
-                lower_state = op_lower(self.Lsites - 1, state_a)
-                j = self.Lsites - 2 # OBC
-                if lower_state[j] < self.Nmax:
-                    Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
-                    state_b = op_raise(j, lower_state)
-                    b = self.map[tuple(state_b)]
-                    Matrika[a, b] += - t * Amplitude
-                
+            self.__op_hop(t, 0, 1, a, state_a, Matrika)
+            self.__op_hop(t, self.Lsites - 1, -1, a, state_a, Matrika)               
             for i in range(1, self.Lsites - 1):
-                if state_a[i] > 0:
-                    amplitude1 = state_a[i]
-                    lower_state = op_lower(i, state_a)
-
-                    j = i + 1 # OBC
-                    if lower_state[j] < self.Nmax:
-                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
-                        fock_b = op_raise(j, lower_state)
-                        b = self.map[tuple(fock_b)]
-                        Matrika[a, b] += - t * Amplitude
-
-                    j = i - 1 # OBC
-                    if lower_state[j] < self.Nmax:
-                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
-                        fock_b = op_raise(j, lower_state)
-                        b = self.map[tuple(fock_b)]
-                        Matrika[a, b] += - t * Amplitude
+                self.__op_hop(t, i, (-1, 1), a, state_a, Matrika)
 
         return Matrika
 
@@ -395,23 +371,7 @@ class HilbertSpace:
         for a in range(self.Dim):
             state_a = self.Basis[a]
             for i in range(self.Lsites):
-                if state_a[i] > 0:
-                    amplitude1 = state_a[i]
-                    lower_state = op_lower(i, state_a)
-
-                    j = (i + 1) % self.Lsites # PBC
-                    if lower_state[j] < self.Nmax:
-                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
-                        state_b = op_raise(j, lower_state)
-                        b = self.map[tuple(state_b)]
-                        Matrika[a, b] += - t * Amplitude
-
-                    j = (i + self.Lsites - 1) % self.Lsites # PBC
-                    if lower_state[j] < self.Nmax:
-                        Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1))
-                        state_b = op_raise(j, lower_state)
-                        b = self.map[tuple(state_b)]
-                        Matrika[a, b] += - t * Amplitude
+                self.__op_hop(t, i, (-1, 1), a, state_a, Matrika)
 
         return Matrika
 
@@ -422,18 +382,22 @@ class HilbertSpace:
             return self.op_kinetic_pbc(t)
 
 
-    ## Coulomb interaction for kN-block Hamiltonian
-    def op_interaction_k(self, U):
-        Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
-        for a in range(self.Dim):
-            state = self.Basis[a]
-            Amplitude = 0.0
-            for i in range(self.Lsites):
-                Amplitude += state[i] * (state[i] - 1)
-            
-            Matrika[a, a] = 0.5 * U * Amplitude
-
-        return Matrika
+    ## hopping operator
+    def __op_hop_k(self, t, i, d, a, state_a, Period_a, Matrika):
+        if state_a[i] > 0:
+            n_i = state_a[i]
+            t_state = op_lower(i, state_a)
+            for d_j in np.array(d, dtype=int):
+                j = i + d_j
+                j = j - round(j / self.Lsites) * self.Lsites # PBC IF NEEDED
+                if t_state[j] < self.Nmax:
+                    n_j = t_state[j]
+                    state_b, Phase = representative(op_raise(j, t_state), self.Lsites)
+                    if tuple(state_b) in self.Findstate:
+                        b = self.Findstate[tuple(state_b)]
+                        Period_b = self.Periodicities[b]
+                        Arg = 2.0 * np.pi / self.Lsites * self.Kmoment * Phase
+                        Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a / Period_b) * complex(np.cos(Arg), np.sin(Arg))
 
 
     ## kN-block Hamiltonian
@@ -443,37 +407,13 @@ class HilbertSpace:
             state_a = self.Basis[a]
             Period_a = self.Periodicities[a]
             for i in range(self.Lsites):
-                if state_a[i] > 0:
-                    amplitude1 = state_a[i]
-                    lower_state = op_lower(i, state_a)
-
-                    j = (i + 1) % self.Lsites # PBC
-                    if lower_state[j] < self.Nmax:
-                        new_state = op_raise(j, lower_state)
-                        state_b, Phase = findstate_representative_Phase(new_state, self.Lsites)
-                        if tuple(state_b) in self.map:
-                            b = self.map[tuple(state_b)]
-                            Period_b = self.Periodicities[b]
-                            Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1) * Period_a / Period_b)
-                            Arg = 2.0 * np.pi * self.Kmoment * Phase / self.Lsites
-                            Matrika[a, b] += - t * Amplitude * complex(np.cos(Arg), np.sin(Arg))
-
-                    j = (i + self.Lsites - 1) % self.Lsites # PBC
-                    if lower_state[j] < self.Nmax:
-                        new_state = op_raise(j, lower_state)
-                        state_b, Phase = findstate_representative_Phase(new_state, self.Lsites)
-                        if tuple(state_b) in self.map:
-                            b = self.map[tuple(state_b)]
-                            Period_b = self.Periodicities[b]
-                            Amplitude = np.sqrt(amplitude1 * (lower_state[j] + 1) * Period_a / Period_b)
-                            Arg = 2.0 * np.pi * self.Kmoment * Phase / self.Lsites
-                            Matrika[a, b] += - t * Amplitude * complex(np.cos(Arg), np.sin(Arg))
-
+                self.__op_hop_k(t, i, (-1, 1), a, state_a, Period_a, Matrika)
+        
         return Matrika
 
     def op_hamiltonian_k(self, t, inter=False, U=None):
         if inter:
-            return self.op_kinetic_k(t) + self.op_interaction_k(U)
+            return self.op_kinetic_k(t) + self.op_interaction(U)
         else:
             return self.op_kinetic_k(t)
 
@@ -520,8 +460,8 @@ class HilbertSubspace(HilbertSpace):
             # ADD BASIS GENERATION
             # ADD BASIS DIMENSION
 
-        self.map = dict()
+        self.Findstate = dict()
         for a in range(self.Dim):
-            self.map[tuple(self.Basis[a])] = a     # mapping fock states to indices
+            self.Findstate[tuple(self.Basis[a])] = a     # mapping fock states to indices
 
 
