@@ -92,6 +92,29 @@ def op_reflection(s_state, Lsites):
 
 
 #-----------------------------------------------------------------------------------------------
+## check if the given state is the representative state
+## calculate the period of the representative state
+## representative state is the highest integer tuple among all states linked by translations
+# s_state = given state
+# Lsites = number of sites
+# Kmoment = crystal momentum
+#-----------------------------------------------------------------------------------------------
+def checkstate_reflection(s_state, Lsites, Kmoment, Period):
+    ReflectionPeriod = -1
+    t_state = op_reflection(s_state, Lsites)
+    for i in range(Period):
+        if tuple(t_state) > tuple(s_state):
+            Period = -1
+            return (Period, ReflectionPeriod)
+        elif tuple(t_state) == tuple(s_state):
+            ReflectionPeriod = i
+            return (Period, ReflectionPeriod)
+        t_state = op_translation(t_state, Lsites)
+
+    return (Period, ReflectionPeriod)
+
+
+#-----------------------------------------------------------------------------------------------
 ## calculate the dimension of Nmax full Hilbert space
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
@@ -242,10 +265,11 @@ def gen_basis_nblock_from_full(Superbasis, Nquanta):
 def gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=None, Nmax=None):
     if Superbasis is None:
         if Nmax is None:
-            d = dim_nblock(Lsites, Nquanta)
-            Superbasis = gen_basis_nblock(Lsites, Nquanta, d)
+            SuperDim = dim_nblock(Lsites, Nquanta)
+            Superbasis = gen_basis_nblock(Lsites, Nquanta, SuperDim)
         else:
-            d, Superbasis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)
+            _, Superbasis = gen_basis_nblock_nmax(Lsites, Nmax, Nquanta)
+
     Dim = 0
     basis_list = list()
     periodicity_list = list()
@@ -260,6 +284,44 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=None, Nmax=None):
 
 
 #-----------------------------------------------------------------------------------------------
+## generate pkN-block basis
+## with coservation of reflection parity (p)
+## with conservation of the crystal momentum (k)
+## with conservation of the total number of quanta (N)
+## by creating kN-block basis (SCALABLE)
+## from given kN-block basis (SCALABLE)
+# Lsites = number of sites
+# Nquanta = total number of quanta
+# Kmoment = crystal momentum
+# Parity = reflection parity
+# superbasis = basis from which the subbasis is generated
+# Nmax = maximum occupancy for every site
+#-----------------------------------------------------------------------------------------------
+def gen_basis_pknblock(Lsites, Nquanta, Kmoment, Parity, SuperDim=None, Superbasis=None, SuperPeriodicities=None, Nmax=None):
+    if Superbasis is None:
+            SuperDim, Superbasis, SuperPeriodicities = gen_basis_knblock(Lsites, Nquanta, Kmoment, Nmax=Nmax)
+
+    Dim = 0
+    basis_list = list()
+    periodicity_list = list()
+    reflection_periodicity_list = list()
+    for j in range(SuperDim):
+        s_state = Superbasis[j]
+        Period = SuperPeriodicities[j]
+        Period, ReflectionPeriod = checkstate_reflection(s_state, Lsites, Kmoment, Period)
+        if ReflectionPeriod != -1:
+            if 1 + Parity * np.cos(2.0 * np.pi / Lsites * Kmoment * ReflectionPeriod) == 0:
+                Period = -1
+        if Period >= 0:
+            Dim += 1
+            basis_list.append(s_state)
+            periodicity_list.append(Period)
+            reflection_periodicity_list.append(ReflectionPeriod)
+
+    return (Dim, np.array(basis_list, dtype=int), np.array(periodicity_list, dtype=int), np.array(reflection_periodicity_list, dtype=int))
+
+
+#-----------------------------------------------------------------------------------------------
 ## create a Hilbert space
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
@@ -268,7 +330,7 @@ def gen_basis_knblock(Lsites, Nquanta, Kmoment, Superbasis=None, Nmax=None):
 # Sym = symmetry type for block diagonalization
 # Nquanta = conserved total number of quanta (N)
 # Kmoment = conserved crystal momentum (k)
-# Parity = conserved parity (p)
+# Parity = conserved reflection parity (p)
 # *
 #-----------------------------------------------------------------------------------------------
 class HilbertSpace:
@@ -283,7 +345,7 @@ class HilbertSpace:
             if Sym in ('N', 'kN', 'pkN'):
                 self.Subspaces = list()
                 for n in range(Lsites * Nmax + 1):
-                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # N-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Dim, self.Basis, Lsites, Nmax, Diag='N', Sym=Sym, Nquanta=n)) # N-block Hilbert subspaces
 
         elif Diag == 'N':
             self.Nquanta = Nquanta  # total number of quanta
@@ -295,7 +357,7 @@ class HilbertSpace:
             if Sym in ('kN', 'pkN'):
                 self.Subspaces = list()
                 for k in range(Lsites):
-                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Dim, self.Basis, Lsites, Nmax, Diag='kN', Sym=Sym, Nquanta=Nquanta, Kmoment=k))  # kN-block Hilbert subspaces
                 
         elif Diag == 'kN':
             self.Nquanta = Nquanta   # total number of quanta
@@ -307,14 +369,16 @@ class HilbertSpace:
             if Sym == 'pkN':
                 self.Subspaces = list()
                 for p in (-1, 1):
-                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Dim, self.Basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, SuperPeriodicities=self.Periodicities, Parity=p)) # pkN Hilbert subspaces
 
         elif Diag == 'pkN':
             self.Nquanta = Nquanta     # total number of quanta
             self.Kmoment = Kmoment     # crystal momentum k
-            self.Parity = Parity       # parity p
-            # ADD BASIS GENERATION
-            # ADD BASIS DIMENSION
+            self.Parity = Parity       # reflection parity p
+            if Nquanta <= Nmax:
+                self.Dim, self.Basis, self.Periodicities, self.ReflectionPeriodicites = gen_basis_pknblock(Lsites, Nquanta, Kmoment, Parity)             # dimension of Hilbert space # pkN-block basis
+            else:
+                self.Dim, self.Basis, self.Periodicities, self.ReflectionPeriodicites = gen_basis_pknblock(Lsites, Nquanta, Kmoment, Parity, Nmax=Nmax)             # dimension of Hilbert space # Nmax pkN-block basis
 
         self.Findstate = dict()
         for a in range(self.Dim):
@@ -420,7 +484,8 @@ class HilbertSpace:
 
 #-----------------------------------------------------------------------------------------------
 ## create a Hilbert subspace
-# superbasis = basis from which the subbasis is generated
+# SuperDim = dimension of Superbasis
+# Superbasis = basis from which the subbasis is generated
 # Lsites = number of sites
 # Nmax = maximum occupancy for every site
 # Nquanta = conserved total number of quanta (N)
@@ -428,16 +493,17 @@ class HilbertSpace:
 # Diag = specify any fixed commuting quantum numbers to diagonalize a block
 # Sym = symmetry type for block diagonalization
 # Kmoment = conserved crystal momentum (k)
-# Parity = conserved parity (p)
+# Parity = conserved reflection parity (p)
 # *
 #-----------------------------------------------------------------------------------------------
 class HilbertSubspace(HilbertSpace):
     ## construct a Hilbert subspace with given parameters
-    def __init__(self, Superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None, Parity=None):
+    def __init__(self, SuperDim, Superbasis, Lsites, Nmax, Nquanta, Diag='N', Sym='N', Kmoment=None, SuperPeriodicities=None, Parity=None):
+        self.SuperDim = SuperDim         # dimension of Superbasis
+        self.Superbasis = Superbasis     # basis from which the subbasis is generated
         self.Lsites = Lsites             # number of sites
         self.Nmax = Nmax                 # maximum occupancy for any site
         self.Nquanta = Nquanta           # total number of quanta
-        self.Superbasis = Superbasis     # basis from which the subbasis is generated
 
         if Diag == 'N':
             self.Dim, self.Basis = gen_basis_nblock_from_full(Superbasis, Nquanta)      # N-block basis
@@ -452,13 +518,12 @@ class HilbertSubspace(HilbertSpace):
             if Sym == 'pkN':
                 self.Subspaces = list()
                 for p in (-1, 1):
-                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, Parity=p)) # pkN-block Hilbert subspaces
+                    self.Subspaces.append(HilbertSubspace(self.Basis, Lsites, Nmax, Diag='pkN', Sym=Sym, Nquanta=Nquanta, Kmoment=Kmoment, SuperPeriodicites=self.Periodicities, Parity=p)) # pkN-block Hilbert subspaces
 
         elif Diag == 'pkN':
             self.Kmoment = Kmoment    # crystal momentum k
-            self.Parity = Parity      # parity p
-            # ADD BASIS GENERATION
-            # ADD BASIS DIMENSION
+            self.Parity = Parity      # reflection parity p
+            self.Dim, self.Basis, self.Periodicities, self.ReflectionPeriodicites = gen_basis_pknblock(Lsites, Nquanta, Kmoment, Parity, SuperDim=SuperDim, Superbasis=Superbasis, SuperPeriodicities=SuperPeriodicities)   # pkN-block basis
 
         self.Findstate = dict()
         for a in range(self.Dim):
