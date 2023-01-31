@@ -70,10 +70,10 @@ def representative(s_state, Lsites):
     r_state = np.copy(s_state)
     t_state = s_state
     Phase = 0
-    for i in range(1, Lsites + 1):
+    for i in range(1, Lsites):
         t_state = op_translation(t_state, Lsites)
         if tuple(t_state) > tuple(r_state):
-            r_state = t_state
+            r_state = np.copy(t_state)
             Phase = i
     
     return (r_state, Phase)
@@ -99,7 +99,7 @@ def op_reflection(s_state, Lsites):
 # Lsites = number of sites
 # Kmoment = crystal momentum
 #-----------------------------------------------------------------------------------------------
-def checkstate_reflection(s_state, Lsites, Kmoment, Period):
+def reflection_checkstate(s_state, Lsites, Period):
     ReflectionPeriod = -1
     t_state = op_reflection(s_state, Lsites)
     for i in range(Period):
@@ -112,6 +112,27 @@ def checkstate_reflection(s_state, Lsites, Kmoment, Period):
         t_state = op_translation(t_state, Lsites)
 
     return (Period, ReflectionPeriod)
+
+
+#-----------------------------------------------------------------------------------------------
+## find the representative state for the given state
+## calculate the Phase of translation from the representative state to the given state
+## representative state is the highest integer tuple among all states linked by translations
+# s_state = given state
+# Lsites = number of sites
+#-----------------------------------------------------------------------------------------------
+def reflection_representative(s_state, Lsites, Phase):
+    r_state = np.copy(s_state)
+    t_state = op_reflection(s_state, Lsites)
+    ReflectionPhase = 0
+    for i in range(1, Lsites):
+        t_state = op_translation(t_state, Lsites)
+        if tuple(t_state) > tuple(r_state):
+            r_state = np.copy(t_state)
+            Phase = i
+            ReflectionPhase = 1
+    
+    return (r_state, Phase, ReflectionPhase)
 
 
 #-----------------------------------------------------------------------------------------------
@@ -308,7 +329,7 @@ def gen_basis_pknblock(Lsites, Nquanta, Kmoment, Parity, SuperDim=None, Superbas
     for j in range(SuperDim):
         s_state = Superbasis[j]
         Period = SuperPeriodicities[j]
-        Period, ReflectionPeriod = checkstate_reflection(s_state, Lsites, Kmoment, Period)
+        Period, ReflectionPeriod = reflection_checkstate(s_state, Lsites, Period)
         if ReflectionPeriod != -1:
             if 1 + Parity * np.cos(2.0 * np.pi / Lsites * Kmoment * ReflectionPeriod) == 0:
                 Period = -1
@@ -460,8 +481,8 @@ class HilbertSpace:
                     if tuple(state_b) in self.Findstate:
                         b = self.Findstate[tuple(state_b)]
                         Period_b = self.Periodicities[b]
-                        Arg = 2.0 * np.pi / self.Lsites * self.Kmoment * Phase
-                        Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a / Period_b) * complex(np.cos(Arg), np.sin(Arg))
+                        PhaseArg = 2.0 * np.pi / self.Lsites * self.Kmoment * Phase
+                        Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a / Period_b) * complex(np.cos(PhaseArg), np.sin(PhaseArg))
 
 
     ## kN-block Hamiltonian
@@ -480,6 +501,83 @@ class HilbertSpace:
             return self.op_kinetic_k(t) + self.op_interaction(U)
         else:
             return self.op_kinetic_k(t)
+
+
+
+
+
+
+
+
+
+
+    ## hopping operator
+    def __op_hop_pk(self, t, i, d, a, state_a, Period_a, Factor_a, Matrika):
+        if state_a[i] > 0:
+            n_i = state_a[i]
+            t_state = op_lower(i, state_a)
+            for d_j in np.array(d, dtype=int):
+                j = i + d_j
+                j = j - round(j / self.Lsites) * self.Lsites # PBC IF NEEDED
+                if t_state[j] < self.Nmax:
+                    n_j = t_state[j]
+                    state_b, Phase = representative(op_raise(j, t_state), self.Lsites)
+                    state_b, Phase, ReflectionPhase = reflection_representative(state_b, self.Lsites, Phase)
+                    if tuple(state_b) in self.Findstate:
+                        b = self.Findstate[tuple(state_b)]
+                        Period_b = self.Periodicities[b]
+                        ReflectionPeriod_b = self.ReflectionPeriodicites[b]
+                        PhaseArg = 2.0 * np.pi / self.Lsites * self.Kmoment * Phase
+                        if ReflectionPeriod_b >= 0:
+                            ReflectionPeriodArg_b = 2.0 * np.pi / self.Lsites * self.Kmoment * ReflectionPeriod_b
+                            Factor_b = 1.0 + self.Parity * np.cos(ReflectionPeriodArg_b)
+                            #Factor = (np.cos(PhaseArg) + self.Parity * np.cos(PhaseArg - ReflectionPeriodArg_b)) / Factor_b
+                            Factor = (np.cos(PhaseArg) + self.Parity * np.cos(PhaseArg - ReflectionPeriodArg_b))
+                        else:
+                            Factor_b = 1.0
+                            Factor = np.cos(PhaseArg)                        
+                        #Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a * Factor_b / (Period_b * Factor_a)) * Factor * self.Parity ** ReflectionPhase
+                        Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a / (Period_b * Factor_a * Factor_b)) * Factor * self.Parity ** ReflectionPhase
+
+
+    ## kN-block Hamiltonian
+    def op_kinetic_pk(self, t):
+        Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
+        for a in range(self.Dim):
+            state_a = self.Basis[a]
+            Period_a = self.Periodicities[a]
+            ReflectionPeriod_a = self.ReflectionPeriodicites[a]
+            if ReflectionPeriod_a >= 0:
+                Factor_a = 1.0 + self.Parity * np.cos(2.0 * np.pi / self.Lsites * self.Kmoment * ReflectionPeriod_a)
+            else:
+                Factor_a = 1.0
+            for i in range(self.Lsites):
+                self.__op_hop_pk(t, i, (-1, 1), a, state_a, Period_a, Factor_a, Matrika)
+        
+        return Matrika
+
+    def op_hamiltonian_pk(self, t, inter=False, U=None):
+        if inter:
+            return self.op_kinetic_pk(t) + self.op_interaction(U)
+        else:
+            return self.op_kinetic_pk(t)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #-----------------------------------------------------------------------------------------------
