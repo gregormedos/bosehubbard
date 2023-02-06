@@ -407,17 +407,17 @@ class HilbertSpace:
 
 
     ## Coulomb interaction
-    def op_interaction(self, U):
+    def op_interaction(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]            
-            Matrika[a, a] = 0.5 * U * np.sum(state_a * (state_a - 1))
+            Matrika[a, a] = 0.5 * np.sum(state_a * (state_a - 1))
 
         return Matrika
 
 
     ## hopping operator
-    def __op_hop(self, t, i, d, a, state_a, Matrika):
+    def __op_hop(self, i, d, a, state_a, Matrika):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = op_lower(i, state_a)
@@ -428,47 +428,47 @@ class HilbertSpace:
                     n_j = t_state[j]
                     state_b = op_raise(j, t_state)
                     b = self.Findstate[tuple(state_b)]
-                    Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1))
+                    Matrika[a, b] -= np.sqrt(n_i * (n_j + 1))
 
 
     ## Hamiltonian with OBC
-    def op_kinetic_obc(self, t):
+    def op_kinetic_obc(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]
-            self.__op_hop(t, 0, 1, a, state_a, Matrika)
-            self.__op_hop(t, self.Lsites - 1, -1, a, state_a, Matrika)               
+            self.__op_hop(0, 1, a, state_a, Matrika)
+            self.__op_hop(self.Lsites - 1, -1, a, state_a, Matrika)               
             for i in range(1, self.Lsites - 1):
-                self.__op_hop(t, i, (-1, 1), a, state_a, Matrika)
+                self.__op_hop(i, (-1, 1), a, state_a, Matrika)
 
         return Matrika
 
     def op_hamiltonian_obc(self, t, inter=False, U=None):
         if inter:
-            return self.op_kinetic_obc(t) + self.op_interaction(U)
+            return t * self.op_kinetic_obc() + U * self.op_interaction()
         else:
-            return self.op_kinetic_obc(t)
+            return t * self.op_kinetic_obc()
 
 
     ## Hamiltonian with PBC
-    def op_kinetic_pbc(self, t):
+    def op_kinetic_pbc(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]
             for i in range(self.Lsites):
-                self.__op_hop(t, i, (-1, 1), a, state_a, Matrika)
+                self.__op_hop(i, (-1, 1), a, state_a, Matrika)
 
         return Matrika
 
     def op_hamiltonian_pbc(self, t, inter=False, U=None):
         if inter:
-            return self.op_kinetic_pbc(t) + self.op_interaction(U)
+            return t * self.op_kinetic_pbc() + U * self.op_interaction()
         else:
-            return self.op_kinetic_pbc(t)
+            return t * self.op_kinetic_pbc()
 
 
     ## hopping operator
-    def __op_hop_k(self, t, i, d, a, state_a, Period_a, Matrika):
+    def __op_hop_k(self, i, d, a, state_a, Period_a, Matrika):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = op_lower(i, state_a)
@@ -482,29 +482,29 @@ class HilbertSpace:
                         b = self.Findstate[tuple(state_b)]
                         Period_b = self.Periodicities[b]
                         PhaseArg = 2.0 * np.pi / self.Lsites * self.Kmoment * Phase
-                        Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a / Period_b) * complex(np.cos(PhaseArg), np.sin(PhaseArg))
+                        Matrika[a, b] -= np.sqrt(n_i * (n_j + 1) * Period_a / Period_b) * complex(np.cos(PhaseArg), np.sin(PhaseArg))
 
 
     ## kN-block Hamiltonian
-    def op_kinetic_k(self, t):
+    def op_kinetic_k(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
             state_a = self.Basis[a]
             Period_a = self.Periodicities[a]
             for i in range(self.Lsites):
-                self.__op_hop_k(t, i, (-1, 1), a, state_a, Period_a, Matrika)
+                self.__op_hop_k(i, (-1, 1), a, state_a, Period_a, Matrika)
         
         return Matrika
 
     def op_hamiltonian_k(self, t, inter=False, U=None):
         if inter:
-            return self.op_kinetic_k(t) + self.op_interaction(U)
+            return t * self.op_kinetic_k() + U * self.op_interaction()
         else:
-            return self.op_kinetic_k(t)
+            return t * self.op_kinetic_k()
 
 
     ## hopping operator
-    def __op_hop_pk(self, t, i, d, a, state_a, Period_a, Factor_a, Matrika):
+    def __op_hop_pk(self, i, d, a, state_a, Period_a, Factor_a, Matrika):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = op_lower(i, state_a)
@@ -528,12 +528,12 @@ class HilbertSpace:
                         else:
                             Factor_b = 1.0
                             Factor = np.cos(PhaseArg)                        
-                        #Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a * Factor_b / (Period_b * Factor_a)) * Factor * self.Parity ** ReflectionPhase
-                        Matrika[a, b] -= t * np.sqrt(n_i * (n_j + 1) * Period_a / (Period_b * Factor_a * Factor_b)) * Factor * self.Parity ** ReflectionPhase
+                        #Matrika[a, b] -= np.sqrt(n_i * (n_j + 1) * Period_a * Factor_b / (Period_b * Factor_a)) * Factor * self.Parity ** ReflectionPhase
+                        Matrika[a, b] -= np.sqrt(n_i * (n_j + 1) * Period_a / (Period_b * Factor_a * Factor_b)) * Factor * self.Parity ** ReflectionPhase
 
 
     ## kN-block Hamiltonian
-    def op_kinetic_pk(self, t):
+    def op_kinetic_pk(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
             state_a = self.Basis[a]
@@ -544,15 +544,15 @@ class HilbertSpace:
             else:
                 Factor_a = 1.0
             for i in range(self.Lsites):
-                self.__op_hop_pk(t, i, (-1, 1), a, state_a, Period_a, Factor_a, Matrika)
+                self.__op_hop_pk(i, (-1, 1), a, state_a, Period_a, Factor_a, Matrika)
         
         return Matrika
 
     def op_hamiltonian_pk(self, t, inter=False, U=None):
         if inter:
-            return self.op_kinetic_pk(t) + self.op_interaction(U)
+            return t * self.op_kinetic_pk() + U * self.op_interaction()
         else:
-            return self.op_kinetic_pk(t)
+            return t * self.op_kinetic_pk()
 
 
 #-----------------------------------------------------------------------------------------------
