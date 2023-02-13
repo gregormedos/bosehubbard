@@ -141,7 +141,7 @@ def reflection_representative(s_state, Lsites, Phase):
 # Nmax = maximum occupancy for every site
 #-----------------------------------------------------------------------------------------------
 def dim_full_nmax(Lsites, Nmax):
-    return (Nmax + 1)**Lsites
+    return (Nmax + 1) ** Lsites
 
 
 #-----------------------------------------------------------------------------------------------
@@ -331,7 +331,7 @@ def gen_basis_pknblock(Lsites, Nquanta, Kmoment, Parity, SuperDim=None, SuperBas
         Period = SuperPeriodicities[j]
         Period, ReflectionPeriod = reflection_checkstate(s_state, Lsites, Period)
         if ReflectionPeriod != -1:
-            if 1 + Parity * np.cos(2.0 * np.pi / Lsites * Kmoment * ReflectionPeriod) == 0:
+            if 1.0 + Parity * np.cos(2.0 * np.pi / Lsites * Kmoment * ReflectionPeriod) == 0.0:
                 Period = -1
         if Period >= 0:
             Dim += 1
