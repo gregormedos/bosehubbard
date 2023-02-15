@@ -406,8 +406,8 @@ class HilbertSpace:
             self.Findstate[tuple(self.Basis[a])] = a       # mapping fock states to indices
 
 
-    ## Coulomb interaction
-    def op_interaction(self):
+    ## Coulomb interaction Hamiltonian
+    def op_hamiltonian_interaction(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]            
@@ -431,8 +431,8 @@ class HilbertSpace:
                     Matrika[a, b] -= np.sqrt(n_i * (n_j + 1))
 
 
-    ## Hamiltonian with OBC
-    def op_kinetic_obc(self):
+    ## tunneling Hamiltonian with OBC
+    def op_hamiltonian_tunnel_obc(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]
@@ -443,15 +443,9 @@ class HilbertSpace:
 
         return Matrika
 
-    def op_hamiltonian_obc(self, t, inter=False, U=None):
-        if inter:
-            return t * self.op_kinetic_obc() + U * self.op_interaction()
-        else:
-            return t * self.op_kinetic_obc()
 
-
-    ## Hamiltonian with PBC
-    def op_kinetic_pbc(self):
+    ## tunneling Hamiltonian with PBC
+    def op_hamiltonian_tunnel_pbc(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=float)
         for a in range(self.Dim):
             state_a = self.Basis[a]
@@ -459,12 +453,6 @@ class HilbertSpace:
                 self.__op_hop(i, (-1, 1), a, state_a, Matrika)
 
         return Matrika
-
-    def op_hamiltonian_pbc(self, t, inter=False, U=None):
-        if inter:
-            return t * self.op_kinetic_pbc() + U * self.op_interaction()
-        else:
-            return t * self.op_kinetic_pbc()
 
 
     ## hopping operator
@@ -485,8 +473,8 @@ class HilbertSpace:
                         Matrika[a, b] -= np.sqrt(n_i * (n_j + 1) * Period_a / Period_b) * complex(np.cos(PhaseArg), np.sin(PhaseArg))
 
 
-    ## kN-block Hamiltonian
-    def op_kinetic_k(self):
+    ## kN-block tunneling Hamiltonian
+    def op_hamiltonian_tunnel_k(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
             state_a = self.Basis[a]
@@ -495,12 +483,6 @@ class HilbertSpace:
                 self.__op_hop_k(i, (-1, 1), a, state_a, Period_a, Matrika)
         
         return Matrika
-
-    def op_hamiltonian_k(self, t, inter=False, U=None):
-        if inter:
-            return t * self.op_kinetic_k() + U * self.op_interaction()
-        else:
-            return t * self.op_kinetic_k()
 
 
     ## hopping operator
@@ -532,8 +514,8 @@ class HilbertSpace:
                         Matrika[a, b] -= np.sqrt(n_i * (n_j + 1) * Period_a / (Period_b * Factor_a * Factor_b)) * Factor * self.Parity ** ReflectionPhase
 
 
-    ## kN-block Hamiltonian
-    def op_kinetic_pk(self):
+    ## kN-block tunneling Hamiltonian
+    def op_hamiltonian_tunnel_pk(self):
         Matrika = np.zeros((self.Dim, self.Dim), dtype=complex)
         for a in range(self.Dim):
             state_a = self.Basis[a]
@@ -547,12 +529,6 @@ class HilbertSpace:
                 self.__op_hop_pk(i, (-1, 1), a, state_a, Period_a, Factor_a, Matrika)
         
         return Matrika
-
-    def op_hamiltonian_pk(self, t, inter=False, U=None):
-        if inter:
-            return t * self.op_kinetic_pk() + U * self.op_interaction()
-        else:
-            return t * self.op_kinetic_pk()
 
 
 #-----------------------------------------------------------------------------------------------
@@ -601,5 +577,3 @@ class HilbertSubspace(HilbertSpace):
         self.Findstate = dict()
         for a in range(self.Dim):
             self.Findstate[tuple(self.Basis[a])] = a     # mapping fock states to indices
-
-
