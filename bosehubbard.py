@@ -25,7 +25,7 @@ the shape `(dim, dim)`.
 import numpy as np
 
 
-def fock_lower(s_state: np.ndarray, i: int) -> np.ndarray:
+def fock_lower(s_state: np.ndarray, i: int):
     """
     Return a copy of a Fock state with one lowered site.
 
@@ -47,7 +47,7 @@ def fock_lower(s_state: np.ndarray, i: int) -> np.ndarray:
     return t_state
 
 
-def fock_raise(s_state: np.ndarray, i: int) -> np.ndarray:
+def fock_raise(s_state: np.ndarray, i: int):
     """
     Return a copy of a Fock state with one raised site.
 
@@ -69,7 +69,7 @@ def fock_raise(s_state: np.ndarray, i: int) -> np.ndarray:
     return t_state
 
 
-def fock_translation(s_state: np.ndarray) -> np.ndarray:
+def fock_translation(s_state: np.ndarray):
     """
     Return a copy of a Fock state, translated in the right direction.
 
@@ -88,7 +88,7 @@ def fock_translation(s_state: np.ndarray) -> np.ndarray:
     return t_state
 
 
-def fock_checkstate(s_state: np.ndarray, num_sites: int, crystal_momentum: int) -> int:
+def fock_checkstate(s_state: np.ndarray, num_sites: int, crystal_momentum: int):
     """
     Check if the given Fock state is the representative state and
     calculate the period of the representative state.
@@ -124,7 +124,7 @@ def fock_checkstate(s_state: np.ndarray, num_sites: int, crystal_momentum: int) 
                 return period
 
 
-def fock_representative(s_state: np.ndarray, num_sites: int) -> tuple[np.ndarray, int]:
+def fock_representative(s_state: np.ndarray, num_sites: int):
     """
     Find the representative state for the given Fock state and
     calculate the number of translations from the representative
@@ -160,7 +160,7 @@ def fock_representative(s_state: np.ndarray, num_sites: int) -> tuple[np.ndarray
     return r_state, phase
 
 
-def fock_reflection(s_state: np.ndarray) -> np.ndarray:
+def fock_reflection(s_state: np.ndarray):
     """
     Return a copy of a Fock state, reflected through its center.
 
@@ -179,7 +179,7 @@ def fock_reflection(s_state: np.ndarray) -> np.ndarray:
     return t_state
 
 
-def fock_reflection_checkstate(s_state: np.ndarray, period: int) -> tuple[int, int]:
+def fock_reflection_checkstate(s_state: np.ndarray, period: int):
     """
     Check if the reflection of the given Fock state is the
     representative state and calculate the reflection period of the
@@ -216,7 +216,7 @@ def fock_reflection_checkstate(s_state: np.ndarray, period: int) -> tuple[int, i
     return period, reflection_period
 
 
-def fock_reflection_representative(s_state: np.ndarray, num_sites: int, phase: int) -> tuple[np.ndarray, int, int]:
+def fock_reflection_representative(s_state: np.ndarray, num_sites: int, phase: int):
     """
     Find the representative state for the reflection of the given Fock
     state and calculate the number of translations and reflections from
@@ -257,7 +257,7 @@ def fock_reflection_representative(s_state: np.ndarray, num_sites: int, phase: i
     return r_state, phase, reflection_phase
 
 
-def dim_full(num_sites: int, n_max: int) -> int:
+def dim_full(num_sites: int, n_max: int):
     """
     Calculate the full Hilbert space dimension, given the number of
     sites `num_sites` and the restriction on the maximum number of bosons on
@@ -279,7 +279,7 @@ def dim_full(num_sites: int, n_max: int) -> int:
     return (n_max + 1) ** num_sites
 
 
-def gen_basis_full(num_sites: int, n_max: int, dim: int) -> np.ndarray:
+def gen_basis_full(num_sites: int, n_max: int, dim: int):
     """
     Generate the full Hilbert space Fock basis, given the number of
     sites `num_sites`, the restriction on the maximum number of bosons on site
@@ -317,7 +317,7 @@ def gen_basis_full(num_sites: int, n_max: int, dim: int) -> np.ndarray:
     return basis
 
 
-def dim_nblock(num_sites: int, n_tot: int) -> int:
+def dim_nblock(num_sites: int, n_tot: int):
     """
     Calculate the N-block Hilbert space dimension, given the number of
     sites `num_sites` and the total number of bosons `n_tot`.
@@ -339,7 +339,7 @@ def dim_nblock(num_sites: int, n_tot: int) -> int:
             // np.math.factorial(n_tot))
 
 
-def gen_basis_nblock(num_sites: int, n_tot: int, dim: int) -> np.ndarray:
+def gen_basis_nblock(num_sites: int, n_tot: int, dim: int):
     """
     Generate the N-block Hilbert space Fock basis, given the number of
     sites `num_sites`, the total number of bosons `n_tot` and the N-block Hilbert
@@ -375,7 +375,7 @@ def gen_basis_nblock(num_sites: int, n_tot: int, dim: int) -> np.ndarray:
     return basis
 
 
-def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int) -> tuple[int, np.ndarray]:
+def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int):
     """
     Generate the N-block Hilbert space Fock basis, given the number of
     sites `num_sites`, the total number of bosons `n_tot` and the restriction on
@@ -429,7 +429,7 @@ def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int) -> tuple[int, 
     return dim, basis
 
 
-def gen_basis_nblock_from_full(n_tot: int, super_basis: np.ndarray) -> tuple[int, np.ndarray]:
+def gen_basis_nblock_from_full(n_tot: int, super_basis: np.ndarray):
     """
     Generate the N-block Hilbert space Fock basis, given the total
     number of bosons `n_tot` and the full Hilbert space Fock basis
@@ -466,7 +466,7 @@ def gen_basis_knblock(num_sites: int,
                       n_tot: int,
                       crystal_momentum: int,
                       super_basis: np.ndarray = None,
-                      n_max: int = None) -> tuple[int, np.ndarray, np.ndarray]:
+                      n_max: int = None):
     """
     Generate the KN-block Hilbert space Fock basis, given the number of
     sites `num_sites`, the total number of bosons `n_tot` and the crystal momentum
@@ -523,7 +523,7 @@ def gen_basis_pknblock(num_sites: int,
                        super_dim: int = None,
                        super_basis: np.ndarray = None,
                        super_periods: int = None,
-                       n_max: int = None) -> tuple[int, np.ndarray, np.ndarray, np.ndarray]:
+                       n_max: int = None):
     """
     Generate the PKN-block Hilbert space Fock basis, given the number of
     sites `num_sites`, the total number of bosons `n_tot`, the crystal momentum `crystal_momentum`
@@ -692,7 +692,7 @@ class HilbertSpace:
             self.findstate[tuple(self.basis[a])] = a
 
     # Coulomb interaction Hamiltonian
-    def op_hamiltonian_interaction(self) -> np.ndarray:
+    def op_hamiltonian_interaction(self):
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
@@ -701,11 +701,11 @@ class HilbertSpace:
         return mat
 
     # hopping operator
-    def __op_hop(self, i: int, d: int | tuple, a: int, state_a: np.ndarray, mat: np.ndarray):
+    def __op_hop(self, i: int, d: tuple, a: int, state_a: np.ndarray, mat: np.ndarray):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = fock_lower(state_a, i)
-            for d_j in np.array(d, dtype=int):
+            for d_j in d:
                 j = i + d_j
                 j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
@@ -715,20 +715,19 @@ class HilbertSpace:
                     mat[a, b] -= np.sqrt(n_i * (n_j + 1))
 
     # tunneling Hamiltonian with OBC
-    def op_hamiltonian_tunnel_obc(self) -> np.ndarray:
+    def op_hamiltonian_tunnel_obc(self):
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
-            self.__op_hop(0, 1, a, state_a, mat)
-            self.__op_hop(
-                self.num_sites - 1, -1, a, state_a, mat)
+            self.__op_hop(0, (1,), a, state_a, mat)
+            self.__op_hop(self.num_sites - 1, (-1,), a, state_a, mat)
             for i in range(1, self.num_sites - 1):
                 self.__op_hop(i, (-1, 1), a, state_a, mat)
 
         return mat
 
     # tunneling Hamiltonian with PBC
-    def op_hamiltonian_tunnel_pbc(self) -> np.ndarray:
+    def op_hamiltonian_tunnel_pbc(self):
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
@@ -738,11 +737,11 @@ class HilbertSpace:
         return mat
 
     # hopping operator
-    def __op_hop_k(self, i: int, d: int | tuple, a: int, state_a: np.ndarray, period_a: int, mat: np.ndarray):
+    def __op_hop_k(self, i: int, d: tuple, a: int, state_a: np.ndarray, period_a: int, mat: np.ndarray):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = fock_lower(state_a, i)
-            for d_j in np.array(d, dtype=int):
+            for d_j in d:
                 j = i + d_j
                 j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
@@ -756,7 +755,7 @@ class HilbertSpace:
                                                                                               np.sin(phase_arg))
 
     # kN-block tunneling Hamiltonian
-    def op_hamiltonian_tunnel_k(self) -> np.ndarray:
+    def op_hamiltonian_tunnel_k(self):
         mat = np.zeros((self.dim, self.dim), dtype=complex)
         for a in range(self.dim):
             state_a = self.basis[a]
@@ -769,7 +768,7 @@ class HilbertSpace:
     # hopping operator
     def __op_hop_pk(self,
                     i: int,
-                    d: int | tuple,
+                    d: tuple,
                     a: int,
                     state_a: np.ndarray,
                     period_a: int,
@@ -778,7 +777,7 @@ class HilbertSpace:
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = fock_lower(state_a, i)
-            for d_j in np.array(d, dtype=int):
+            for d_j in d:
                 j = i + d_j
                 j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
@@ -803,7 +802,7 @@ class HilbertSpace:
                                       * factor * self.reflection_parity ** reflection_phase)
 
     # kN-block tunneling Hamiltonian
-    def op_hamiltonian_tunnel_pk(self) -> np.ndarray:
+    def op_hamiltonian_tunnel_pk(self):
         mat = np.zeros((self.dim, self.dim), dtype=complex)
         for a in range(self.dim):
             state_a = self.basis[a]
