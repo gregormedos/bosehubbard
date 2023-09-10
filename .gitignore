@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# hdf5 files
+*.h5
+*.hdf5
