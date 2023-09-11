@@ -786,7 +786,7 @@ class HilbertSpace:
                         else:
                             factor_b = 1.0
                             factor = np.cos(phase_arg)
-                        mat[a, b] -= (np.sqrt(n_i * (n_j + 1) * period_a / (period_b * factor_a * factor_b))
+                        mat[a, b] += (np.sqrt(n_i * (n_j + 1) * period_a / (period_b * factor_a * factor_b))
                                       * factor * self.reflection_parity ** reflection_phase)
 
     # kN-block tunneling Hamiltonian
