@@ -627,11 +627,11 @@ class HilbertSpace:
         self.n_max = n_max
         self.space = space
         self.sym = sym
+        self.subspaces = None
         self.n_tot = n_tot
         self.crystal_momentum = crystal_momentum
-        self.reflection_parity = reflection_parity
-        self.subspaces = None
         self.periods = None
+        self.reflection_parity = reflection_parity
         self.reflection_periods = None
 
         if space == 'full':
@@ -869,12 +869,12 @@ class HilbertSubspace(HilbertSpace):
         self.n_tot = n_tot
         self.space = space
         self.sym = sym
+        self.subspaces = None
         self.crystal_momentum = crystal_momentum
+        self.periods = None
         self.super_dim = super_dim
         self.super_periods = super_periods
         self.reflection_parity = reflection_parity
-        self.subspaces = None
-        self.periods = None
         self.reflection_periods = None
 
         if space == 'N':

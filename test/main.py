@@ -23,9 +23,14 @@ def exact_diagonalization(file: h5py.File,
         param.create_dataset('n_tot', data=hs.n_tot)
     if hs.crystal_momentum is not None:
         param.create_dataset('crystal_momentum', data=hs.crystal_momentum)
+    if hs.periods is not None:
+        group.create_dataset('periods', data=hs.periods)
     if hs.reflection_parity is not None:
         param.create_dataset('reflection_parity', data=hs.reflection_parity)
+    if hs.reflection_periods is not None:
+        group.create_dataset('reflection_periods', data=hs.reflection_periods)
     group.create_dataset('dim', data=hs.dim)
+    group.create_dataset('basis', data=hs.basis)
     file.flush()
     if hs.subspaces is not None:
         group.create_group('subspaces')
@@ -33,11 +38,6 @@ def exact_diagonalization(file: h5py.File,
             exact_diagonalization(file, group.create_group(f'subspaces/{i:04d}'), subspace, tunneling_rate, repulsion_strength)
     else:
         spectrum = group.create_group('spectrum')
-        spectrum.create_dataset('basis', data=hs.basis)
-        if hs.periods is not None:
-            spectrum.create_dataset('periods', data=hs.periods)
-        if hs.reflection_periods is not None:
-            spectrum.create_dataset('reflection_periods', data=hs.reflection_periods)
         if hs.space == 'PKN':
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pk()
         elif hs.space == 'KN':
@@ -52,14 +52,54 @@ def exact_diagonalization(file: h5py.File,
         file.flush()
 
 
-def get_eigen_energies(group: h5py.Group):
-    eigen_energies = list()
+def get_eigen_energies(group: h5py.Group, eigen_energies: np.ndarray, counter: list):
     if 'subspaces' in group:
         for subspace_name in group['subspaces']:
-            eigen_energies.extend(get_eigen_energies(group[f'subspaces/{subspace_name}']))
+            get_eigen_energies(group[f'subspaces/{subspace_name}'], eigen_energies, counter)
     else:
-        eigen_energies.extend(group['spectrum/eigen_energies'][()])
-    return eigen_energies
+        sub_dim = group['dim'][()]
+        sub_eigen_energies = group['spectrum/eigen_energies'][()]
+        j = counter[0]
+        eigen_energies[j: j + sub_dim] = sub_eigen_energies
+        counter[0] += sub_dim
+
+
+def get_eigen_states(group: h5py.Group, findstate: dict, eigen_states: np.ndarray, counter: list):
+    if 'subspaces' in group:
+        for subspace_name in group['subspaces']:
+            get_eigen_states(group[f'subspaces/{subspace_name}'], findstate, eigen_states, counter)
+    else:
+        sub_space = group['param/space'][()]
+        sub_dim = group['dim'][()]
+        sub_basis = group['basis'][()]
+        sub_eigen_states = group['spectrum/eigen_states'][()]
+        j = counter[0]
+        for a in range(sub_dim):
+            sub_state_a = sub_basis[a]
+            sub_values_a = sub_eigen_states[a]
+            if sub_space == 'PKN':
+                num_sites = group['num_sites'][()]
+                sub_crystal_momentum = group['crystal_momentum'][()]
+                sub_reflection_parity = group['reflection_parity'][()]
+                for r in range(num_sites):
+                    phase_arg = -sub_crystal_momentum * r
+                    t_sub_state_a = bh.fock_translation(sub_state_a, r)
+                    eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
+                            sub_values_a * complex(np.cos(phase_arg), np.sin(phase_arg)))
+                    t_sub_state_a = bh.fock_reflection(t_sub_state_a)
+                    eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
+                            sub_values_a * sub_reflection_parity * complex(np.cos(phase_arg), np.sin(phase_arg)))
+            elif sub_space == 'KN':
+                num_sites = group['num_sites'][()]
+                sub_crystal_momentum = group['crystal_momentum'][()]
+                for r in range(num_sites):
+                    phase_arg = -sub_crystal_momentum * r
+                    t_sub_state_a = bh.fock_translation(sub_state_a, r)
+                    eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
+                            sub_values_a * complex(np.cos(phase_arg), np.sin(phase_arg)))
+            else:
+                eigen_states[findstate[tuple(sub_state_a)], j: j + sub_dim] += sub_values_a
+        counter[0] += sub_dim
 
 
 def plot_dos(file_name: str, eigen_energies: np.ndarray):
@@ -68,13 +108,36 @@ def plot_dos(file_name: str, eigen_energies: np.ndarray):
     plt.xlabel(r'$E$')
     plt.ylabel(r'$DOS$')
     plt.tight_layout()
-    plt.savefig(f'{file_name}.png')
+    plt.savefig(f'{file_name}_dos.png')
+
+
+def plot_states(file_name: str, dim: int, eigen_states: np.ndarray):
+    plt.figure(dpi=300)
+    width = 1 / dim
+    colors_real = list(cmr.take_cmap_colors('viridis', dim, cmap_range=(0.14, 0.86)))
+    colors_imag = list(cmr.take_cmap_colors('plasma', dim, cmap_range=(0.14, 0.86)))
+    integral_numbers = np.arange(1, dim + 1, dtype=int)
+    for i in range(dim):
+        plt.bar(integral_numbers + (width * i - 0.5),
+                np.real(eigen_states[:, i]),
+                width=width,
+                color=colors_real[i],
+                alpha=0.5)
+        plt.bar(integral_numbers + (width * i - 0.5),
+                np.imag(eigen_states[:, i]),
+                width=width,
+                color=colors_imag[i],
+                alpha=0.5)
+    plt.xlabel(r'$\underline{n}$')
+    plt.ylabel(r'$Re\psi,Im\psi$')
+    plt.tight_layout()
+    plt.savefig(f'{file_name}_states.png')
 
 
 def run(file_name: str,
         tunneling_rate: float = 1.0,
         repulsion_strength: float = 1.0,
-        num_sites: int = 5,
+        num_sites: int = 3,
         n_max: int = 2,
         space: str = 'full',
         sym: str = None,
@@ -87,8 +150,20 @@ def run(file_name: str,
         exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength)
     with h5py.File(f'{file_name}.h5', 'r') as file:
         group = file['data']
-        eigen_energies = np.array(get_eigen_energies(group), dtype=float)
-        plot_dos(f'{file_name}_dos', eigen_energies)
+        dim = group['dim'][()]
+        basis = group['basis'][()]
+        eigen_energies = np.empty(dim, dtype=float)
+        counter = [0]
+        get_eigen_energies(group, eigen_energies, counter)
+        plot_dos(file_name, eigen_energies)
+        findstate = dict()
+        for a in range(dim):
+            findstate[tuple(basis[a])] = a
+        eigen_states = np.zeros((dim, dim), dtype=complex)
+        counter = [0]
+        get_eigen_states(group, findstate, eigen_states, counter)
+        eigen_states /= np.linalg.norm(eigen_states, axis=0)
+        plot_states(file_name, dim, eigen_states)
 
 
 def main():
