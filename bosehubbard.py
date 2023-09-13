@@ -506,7 +506,7 @@ def gen_basis_knblock(num_sites: int,
     for state_a in super_basis:
         period = fock_checkstate(state_a, num_sites, crystal_momentum)
         if period >= 0:
-            state_list.append(state_a)
+            state_list.append(state_a)  # intentionally avoiding copying
             period_list.append(period)
     basis = np.array(state_list, dtype=int)
     periods = np.array(period_list, dtype=int)
@@ -573,13 +573,12 @@ def gen_basis_pknblock(num_sites: int,
     for a in range(super_dim):
         state_a = super_basis[a]
         period = super_periods[a]
-        (period, reflection_period
-         ) = fock_reflection_checkstate(state_a, period)
+        period, reflection_period = fock_reflection_checkstate(state_a, period)
         if reflection_period != -1:
             if 1.0 + reflection_parity * np.cos(2.0 * np.pi / num_sites * crystal_momentum * reflection_period) == 0.0:
                 period = -1
         if period >= 0:
-            state_list.append(state_a)
+            state_list.append(state_a)  # intentionally avoiding copying
             period_list.append(period)
             reflection_period_list.append(reflection_period)
     basis = np.array(state_list, dtype=int)
@@ -626,6 +625,14 @@ class HilbertSpace:
                  reflection_parity: int = None):
         self.num_sites = num_sites
         self.n_max = n_max
+        self.space = space
+        self.sym = sym
+        self.n_tot = n_tot
+        self.crystal_momentum = crystal_momentum
+        self.reflection_parity = reflection_parity
+        self.subspaces = None
+        self.periods = None
+        self.reflection_periods = None
 
         if space == 'full':
             self.dim = dim_full(num_sites, n_max)
@@ -633,46 +640,52 @@ class HilbertSpace:
             if sym in ('N', 'KN', 'PKN'):
                 self.subspaces = list()
                 for n in range(num_sites * n_max + 1):
-                    self.subspaces.append(
-                        HilbertSubspace(
-                            self.basis, num_sites, n_max, space='N', sym=sym, n_tot=n))
+                    self.subspaces.append(HilbertSubspace(self.basis,  # intentionally avoiding copying
+                                                          num_sites,
+                                                          n_max,
+                                                          space='N',
+                                                          sym=sym,
+                                                          n_tot=n))
 
         elif space == 'N':
-            self.n_tot = n_tot
             self.dim, self.basis = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
             if sym in ('KN', 'PKN'):
                 self.subspaces = list()
                 for k in range(num_sites):
-                    self.subspaces.append(
-                        HilbertSubspace(
-                            self.basis, num_sites, n_max, space='KN',
-                            sym=sym, n_tot=n_tot, crystal_momentum=k))
+                    self.subspaces.append(HilbertSubspace(self.basis,  # intentionally avoiding copying
+                                                          num_sites,
+                                                          n_max,
+                                                          space='KN',
+                                                          sym=sym,
+                                                          n_tot=n_tot,
+                                                          crystal_momentum=k))
 
         elif space == 'KN':
-            self.n_tot = n_tot
-            self.crystal_momentum = crystal_momentum
-            (self.dim, self.basis, self.periods
-             ) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum)
-            if sym == 'PKN':
+            (self.dim,
+             self.basis,
+             self.periods) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum)
+            if sym == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = list()
-                for p in (-1, 1):
-                    self.subspaces.append(
-                        HilbertSubspace(
-                            self.basis, num_sites, n_max, space='PKN',
-                            sym=sym, n_tot=n_tot, crystal_momentum=crystal_momentum,
-                            super_dim=self.dim, super_periods=self.periods, reflection_parity=p))
+                for p in (1, -1):
+                    self.subspaces.append(HilbertSubspace(self.basis,  # intentionally avoiding copying
+                                                          num_sites,
+                                                          n_max,
+                                                          space='PKN',
+                                                          sym=sym,
+                                                          n_tot=n_tot,
+                                                          crystal_momentum=crystal_momentum,
+                                                          super_dim=self.dim,
+                                                          super_periods=self.periods,
+                                                          reflection_parity=p))
 
-        elif space == 'PKN':
-            self.n_tot = n_tot
-            self.crystal_momentum = crystal_momentum
-            self.reflection_parity = reflection_parity
-            (self.dim, self.basis, self.periods,
-             self.reflection_periods
-             ) = gen_basis_pknblock(num_sites, n_tot, n_max, crystal_momentum,
-                                    reflection_parity)
+        elif space == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
+            (self.dim,
+             self.basis,
+             self.periods,
+             self.reflection_periods) = gen_basis_pknblock(num_sites, n_tot, n_max, crystal_momentum, reflection_parity)
 
         else:
-            self.dim = 0
+            self.dim = None
             self.basis = None
 
         self.findstate = dict()
@@ -742,7 +755,7 @@ class HilbertSpace:
                         mat[a, b] += np.sqrt(n_i * (n_j + 1) * period_a / period_b) * complex(np.cos(phase_arg),
                                                                                               np.sin(phase_arg))
 
-    # kN-block tunneling Hamiltonian
+    # KN-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_k(self):
         mat = np.zeros((self.dim, self.dim), dtype=complex)
         for a in range(self.dim):
@@ -789,7 +802,7 @@ class HilbertSpace:
                         mat[a, b] += (np.sqrt(n_i * (n_j + 1) * period_a / (period_b * factor_a * factor_b))
                                       * factor * self.reflection_parity ** reflection_phase)
 
-    # kN-block tunneling Hamiltonian
+    # PKN-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_pk(self):
         mat = np.zeros((self.dim, self.dim), dtype=complex)
         for a in range(self.dim):
@@ -850,44 +863,67 @@ class HilbertSubspace(HilbertSpace):
                  super_dim: int = None,
                  super_periods: np.ndarray = None,
                  reflection_parity: int = None):
+        self.super_basis = super_basis
         self.num_sites = num_sites
         self.n_max = n_max
         self.n_tot = n_tot
+        self.space = space
+        self.sym = sym
+        self.crystal_momentum = crystal_momentum
+        self.super_dim = super_dim
+        self.super_periods = super_periods
+        self.reflection_parity = reflection_parity
+        self.subspaces = None
+        self.periods = None
+        self.reflection_periods = None
 
         if space == 'N':
-            (self.dim, self.basis
-             ) = gen_basis_nblock_from_full(n_tot, super_basis)
+            self.dim, self.basis = gen_basis_nblock_from_full(n_tot, super_basis)
             if sym in ('KN', 'PKN'):
                 self.subspaces = list()
                 for k in range(num_sites):
-                    self.subspaces.append(
-                        HilbertSubspace(
-                            self.basis, num_sites, n_max, space='KN',
-                            sym=sym, n_tot=n_tot, crystal_momentum=k))
+                    self.subspaces.append(HilbertSubspace(self.basis,  # intentionally avoiding copying
+                                                          num_sites,
+                                                          n_max,
+                                                          space='KN',
+                                                          sym=sym,
+                                                          n_tot=n_tot,
+                                                          crystal_momentum=k))
 
         elif space == 'KN':
-            self.crystal_momentum = crystal_momentum
-            (self.dim, self.basis, self.periods
-             ) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum,
-                                   super_basis=super_basis)
-            if sym == 'PKN':
+            (self.dim,
+             self.basis,
+             self.periods) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum, super_basis=super_basis)
+            if sym == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = list()
-                for p in (-1, 1):
-                    self.subspaces.append(
-                        HilbertSubspace(self.basis, num_sites, n_max, space='PKN',
-                                        sym=sym, n_tot=n_tot, crystal_momentum=crystal_momentum,
-                                        super_dim=super_dim, super_periods=self.periods,
-                                        reflection_parity=p))
+                for p in (1, -1):
+                    self.subspaces.append(HilbertSubspace(self.basis,
+                                                          num_sites,
+                                                          n_max,
+                                                          space='PKN',
+                                                          sym=sym,
+                                                          n_tot=n_tot,
+                                                          crystal_momentum=crystal_momentum,
+                                                          super_dim=self.dim,
+                                                          super_periods=self.periods,
+                                                          reflection_parity=p))
 
         elif space == 'PKN':
-            self.crystal_momentum = crystal_momentum
-            self.reflection_parity = reflection_parity
-            (self.dim, self.basis, self.periods,
-             self.reflection_periods
-             ) = gen_basis_pknblock(num_sites, n_tot, n_max, crystal_momentum,
-                                    reflection_parity, super_dim=super_dim,
-                                    super_basis=super_basis,
-                                    super_periods=super_periods)
+            (self.dim,
+             self.basis,
+             self.periods,
+             self.reflection_periods) = gen_basis_pknblock(num_sites,
+                                                           n_tot,
+                                                           n_max,
+                                                           crystal_momentum,
+                                                           reflection_parity,
+                                                           super_dim=super_dim,
+                                                           super_basis=super_basis,
+                                                           super_periods=super_periods)
+
+        else:
+            self.dim = None
+            self.basis = None
 
         self.findstate = dict()
         for a in range(self.dim):
