@@ -108,22 +108,22 @@ def fock_checkstate(s_state: np.ndarray, num_sites: int, crystal_momentum: int):
         Crystal momentum
     Returns
     -------
-    period : int
+    representative_period : int
         Period of the representative state
 
     """
-    period = -1  # not representative
+    representative_period = -1  # not representative
     t_state = s_state
     for i in range(1, num_sites + 1):
         t_state = fock_translation(t_state, 1)
         if tuple(t_state) > tuple(s_state):
-            return period
+            return representative_period
         elif tuple(t_state) == tuple(s_state):
             if (crystal_momentum % (num_sites / i)) == 0:
-                period = i
-                return period
+                representative_period = i
+                return representative_period
             else:
-                return period
+                return representative_period
 
 
 def fock_representative(s_state: np.ndarray, num_sites: int):
@@ -181,7 +181,7 @@ def fock_reflection(s_state: np.ndarray):
     return t_state
 
 
-def fock_reflection_checkstate(s_state: np.ndarray, period: int):
+def fock_checkstate_reflection(s_state: np.ndarray, representative_period: int):
     """
     Check if the reflection of the given Fock state is the
     representative state and calculate the reflection period of the
@@ -194,31 +194,31 @@ def fock_reflection_checkstate(s_state: np.ndarray, period: int):
     ----------
     s_state : np.ndarray
         Starting Fock state
-    period : int
+    representative_period : int
         Period of the representative state
     Returns
     -------
-    period : int
+    representative_period : int
         Period of the representative state
-    reflection_period : int
+    representative_reflection_period : int
         Reflection period of the representative state
 
     """
-    reflection_period = -1  # not representative
+    representative_reflection_period = -1  # not representative
     t_state = fock_reflection(s_state)
-    for i in range(period):
+    for i in range(representative_period):
         if tuple(t_state) > tuple(s_state):
-            period = -1  # not representative
-            return period, reflection_period
+            representative_period = -1  # not representative
+            return representative_period, representative_reflection_period
         elif tuple(t_state) == tuple(s_state):
-            reflection_period = i
-            return period, reflection_period
+            representative_reflection_period = i
+            return representative_period, representative_reflection_period
         t_state = fock_translation(t_state, 1)
 
-    return period, reflection_period
+    return representative_period, representative_reflection_period
 
 
-def fock_reflection_representative(s_state: np.ndarray, num_sites: int, phase: int):
+def fock_representative_reflection(s_state: np.ndarray, num_sites: int, phase: int):
     """
     Find the representative state for the reflection of the given Fock
     state and calculate the number of translations and reflections from
@@ -501,15 +501,15 @@ def gen_basis_knblock(num_sites: int,
     if super_basis is None:
         super_basis = gen_basis_nblock_nmax(num_sites, n_tot, n_max)[1]
 
-    state_list = list()
-    period_list = list()
+    representative_state_list = list()
+    representative_period_list = list()
     for state_a in super_basis:
         period = fock_checkstate(state_a, num_sites, crystal_momentum)
         if period >= 0:
-            state_list.append(state_a)  # intentionally avoiding copying
-            period_list.append(period)
-    representative_basis = np.array(state_list, dtype=int)
-    representative_periods = np.array(period_list, dtype=int)
+            representative_state_list.append(state_a)  # intentionally avoiding copying
+            representative_period_list.append(period)
+    representative_basis = np.array(representative_state_list, dtype=int)
+    representative_periods = np.array(representative_period_list, dtype=int)
     representative_dim = representative_basis.shape[0]
 
     return representative_dim, representative_basis, representative_periods
@@ -567,23 +567,25 @@ def gen_basis_pknblock(num_sites: int,
          super_representative_periods
          ) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum)
 
-    state_list = list()
-    period_list = list()
-    reflection_period_list = list()
+    representative_state_list = list()
+    representative_period_list = list()
+    representative_reflection_period_list = list()
     for a in range(super_representative_dim):
-        state_a = super_representative_basis[a]
-        period = super_representative_periods[a]
-        period, reflection_period = fock_reflection_checkstate(state_a, period)
-        if reflection_period != -1:
-            if 1.0 + reflection_parity * np.cos(2.0 * np.pi / num_sites * crystal_momentum * reflection_period) == 0.0:
-                period = -1
-        if period >= 0:
-            state_list.append(state_a)  # intentionally avoiding copying
-            period_list.append(period)
-            reflection_period_list.append(reflection_period)
-    representative_basis = np.array(state_list, dtype=int)
-    representative_periods = np.array(period_list, dtype=int)
-    representative_reflection_periods = np.array(reflection_period_list, dtype=int)
+        representative_state_a = super_representative_basis[a]
+        representative_period = super_representative_periods[a]
+        representative_period, representative_reflection_period = fock_checkstate_reflection(representative_state_a,
+                                                                                             representative_period)
+        if representative_reflection_period != -1:
+            if 1.0 + reflection_parity * np.cos(2.0 * np.pi / num_sites
+                                                * crystal_momentum * representative_reflection_period) == 0.0:
+                representative_period = -1
+        if representative_period > 0:
+            representative_state_list.append(representative_state_a)  # intentionally avoiding copying
+            representative_period_list.append(representative_period)
+            representative_reflection_period_list.append(representative_reflection_period)
+    representative_basis = np.array(representative_state_list, dtype=int)
+    representative_periods = np.array(representative_period_list, dtype=int)
+    representative_reflection_periods = np.array(representative_reflection_period_list, dtype=int)
     representative_dim = representative_basis.shape[0]
 
     return representative_dim, representative_basis, representative_periods, representative_reflection_periods
@@ -814,25 +816,27 @@ class HilbertSpace:
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
                     (representative_state_b,
                      phase,
-                     reflection_phase) = fock_reflection_representative(representative_state_b, self.num_sites, phase)
+                     reflection_phase) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
                     if tuple(representative_state_b) in self.representative_findstate:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         representative_reflection_period_b = self.representative_reflection_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                        if representative_reflection_period_b >= 0:
+                        if representative_reflection_period_b != -1:
                             representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
                                                                       * self.crystal_momentum
                                                                       * representative_reflection_period_b)
                             factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                            factor = (np.cos(phase_arg) + self.reflection_parity
+                            factor = ((np.cos(phase_arg) + self.reflection_parity
                                       * np.cos(phase_arg - representative_reflection_period_arg_b))
+                                      / (1.0 + self.reflection_parity
+                                      * np.cos(representative_reflection_period_arg_b)))
                         else:
                             factor_b = 1.0
                             factor = np.cos(phase_arg)
-                        mat[a, b] += (np.sqrt(n_i * (n_j + 1) * representative_period_a
-                                              / (representative_period_b * factor_a * factor_b))
-                                      * factor * self.reflection_parity ** reflection_phase)  # complex conjugated
+                        mat[b, a] += (np.sqrt(n_i * (n_j + 1) * representative_period_a * factor_b
+                                              / (representative_period_b * factor_a))
+                                      * factor * self.reflection_parity ** reflection_phase)  # NOT complex conjugated
 
     # PKN-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_pk(self):
@@ -841,10 +845,11 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             representative_period_a = self.representative_periods[a]
             representative_reflection_period_a = self.representative_reflection_periods[a]
-            if representative_reflection_period_a >= 0:
-                factor_a = (1.0 + self.reflection_parity
-                            * np.cos(2.0 * np.pi / self.num_sites
-                                     * self.crystal_momentum * representative_reflection_period_a))
+            if representative_reflection_period_a != -1:
+                representative_reflection_period_arg_a = (2.0 * np.pi / self.num_sites
+                                                          * self.crystal_momentum
+                                                          * representative_reflection_period_a)
+                factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):

@@ -148,9 +148,9 @@ def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarr
 
 def run(file_name: str,
         tunneling_rate: float = 1.0,
-        repulsion_strength: float = 1.0,
-        num_sites: int = 4,
-        n_max: int = 1,
+        repulsion_strength: float = 0.0,
+        num_sites: int = 5,
+        n_max: int = 2,
         space: str = 'full',
         sym: str = None,
         n_tot: int = None,
@@ -195,12 +195,12 @@ def main():
     run('data2', sym='N')
     run('data3', sym='KN')
     run('data4', sym='PKN')
-    run('data5', space='N', sym='N', n_tot=3)
-    run('data6', space='N', sym='KN', n_tot=3)
-    run('data7', space='N', sym='PKN', n_tot=3)
-    run('data8', space='KN', sym='KN', n_tot=3, crystal_momentum=0)
-    run('data9', space='KN', sym='PKN', n_tot=3, crystal_momentum=0)
-    run('data10', space='PKN', sym='PKN', n_tot=3, crystal_momentum=0, reflection_parity=1)
+    run('data5', space='N', sym='N', n_tot=5)
+    run('data6', space='N', sym='KN', n_tot=5)
+    run('data7', space='N', sym='PKN', n_tot=5)
+    run('data8', space='KN', sym='KN', n_tot=5, crystal_momentum=0)
+    run('data9', space='KN', sym='PKN', n_tot=5, crystal_momentum=0)
+    run('data10', space='PKN', sym='PKN', n_tot=5, crystal_momentum=0, reflection_parity=-1)
 
 
 if __name__ == '__main__':
