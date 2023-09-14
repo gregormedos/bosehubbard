@@ -148,7 +148,7 @@ def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarr
 
 def run(file_name: str,
         tunneling_rate: float = 1.0,
-        repulsion_strength: float = 0.0,
+        repulsion_strength: float = 1.0,
         num_sites: int = 5,
         n_max: int = 2,
         space: str = 'full',
