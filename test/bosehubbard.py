@@ -410,7 +410,7 @@ def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int):
         basis_block_list_len = n_max + 1
         for n in range(n_min, n_tot + 1):
             sub_dim, sub_basis = gen_basis_nblock_nmax(num_sites - 1, n, n_max)
-            if sub_dim < 1:
+            if sub_basis is None:
                 basis_block_list_len -= 1
             else:
                 basis_block = np.empty((sub_dim, num_sites), dtype=int)
@@ -425,7 +425,7 @@ def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int):
             basis[a: a + sub_dim_list[i], :] = basis_block_list[i]
             a += sub_dim_list[i]
     else:
-        dim = 0
+        dim = None
         basis = None
 
     return dim, basis
@@ -490,11 +490,11 @@ def gen_basis_knblock(num_sites: int,
     
     Returns
     -------
-    dim : int
+    representative_dim : int
         Hilbert space dimension
-    basis : np.ndarray
+    representative_basis : np.ndarray
         Hilbert space Fock basis
-    periods : np.ndarray
+    representative_periods : np.ndarray
         Periods of the representative states
 
     """
@@ -508,11 +508,11 @@ def gen_basis_knblock(num_sites: int,
         if period >= 0:
             state_list.append(state_a)  # intentionally avoiding copying
             period_list.append(period)
-    basis = np.array(state_list, dtype=int)
-    periods = np.array(period_list, dtype=int)
-    dim = basis.shape[0]
+    representative_basis = np.array(state_list, dtype=int)
+    representative_periods = np.array(period_list, dtype=int)
+    representative_dim = representative_basis.shape[0]
 
-    return dim, basis, periods
+    return representative_dim, representative_basis, representative_periods
 
 
 def gen_basis_pknblock(num_sites: int,
@@ -520,9 +520,9 @@ def gen_basis_pknblock(num_sites: int,
                        n_max: int,
                        crystal_momentum: int,
                        reflection_parity: int,
-                       super_dim: int = None,
-                       super_basis: np.ndarray = None,
-                       super_periods: int = None):
+                       super_representative_dim: int = None,
+                       super_representative_basis: np.ndarray = None,
+                       super_representative_periods: int = None):
     """
     Generate the PKN-block Hilbert space Fock basis, given the number of
     sites `num_sites`, the total number of bosons `n_tot`, the restriction on
@@ -536,43 +536,43 @@ def gen_basis_pknblock(num_sites: int,
         Number of sites
     n_tot : int
         Total number of bosons
+    n_max : int, optional
+        Maximum number of bosons on site
     crystal_momentum : int
         Crystal momentum
     reflection_parity : int
         Reflection parity
-    super_dim : int, optional
+    super_representative_dim : int, optional
         Hilbert space dimension
-    super_basis : np.ndarray, optional
+    super_representative_basis : np.ndarray, optional
         Hilbert space Fock basis
-    super_periods : np.ndarray, optional
+    super_representative_periods : np.ndarray, optional
         Periods of the representative states
-    n_max : int, optional
-        Maximum number of bosons on site
     
     Returns
     -------
-    dim : int
+    representative_dim : int
         Hilbert space dimension
-    basis : np.ndarray
+    representative_basis : np.ndarray
         Hilbert space Fock basis
-    periods : np.ndarray
+    representative_periods : np.ndarray
         Periods of the representative states
-    reflection_periods : np.ndarray
+    representative_reflection_periods : np.ndarray
         Reflection periods of the representative states
 
     """
-    if super_basis is None:
-        (super_dim,
-         super_basis,
-         super_periods
+    if super_representative_basis is None:
+        (super_representative_dim,
+         super_representative_basis,
+         super_representative_periods
          ) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum)
 
     state_list = list()
     period_list = list()
     reflection_period_list = list()
-    for a in range(super_dim):
-        state_a = super_basis[a]
-        period = super_periods[a]
+    for a in range(super_representative_dim):
+        state_a = super_representative_basis[a]
+        period = super_representative_periods[a]
         period, reflection_period = fock_reflection_checkstate(state_a, period)
         if reflection_period != -1:
             if 1.0 + reflection_parity * np.cos(2.0 * np.pi / num_sites * crystal_momentum * reflection_period) == 0.0:
@@ -581,12 +581,12 @@ def gen_basis_pknblock(num_sites: int,
             state_list.append(state_a)  # intentionally avoiding copying
             period_list.append(period)
             reflection_period_list.append(reflection_period)
-    basis = np.array(state_list, dtype=int)
-    periods = np.array(period_list, dtype=int)
-    reflection_periods = np.array(reflection_period_list, dtype=int)
-    dim = basis.shape[0]
+    representative_basis = np.array(state_list, dtype=int)
+    representative_periods = np.array(period_list, dtype=int)
+    representative_reflection_periods = np.array(reflection_period_list, dtype=int)
+    representative_dim = representative_basis.shape[0]
 
-    return dim, basis, periods, reflection_periods
+    return representative_dim, representative_basis, representative_periods, representative_reflection_periods
 
 
 class HilbertSpace:
@@ -626,13 +626,18 @@ class HilbertSpace:
         self.num_sites = num_sites
         self.n_max = n_max
         self.space = space
+        self.dim = None
+        self.basis = None
         self.sym = sym
         self.subspaces = None
         self.n_tot = n_tot
         self.crystal_momentum = crystal_momentum
-        self.periods = None
+        self.representative_dim = None
+        self.representative_basis = None
+        self.representative_periods = None
+        self.representative_findstate = None
         self.reflection_parity = reflection_parity
-        self.reflection_periods = None
+        self.representative_reflection_periods = None
 
         if space == 'full':
             self.dim = dim_full(num_sites, n_max)
@@ -661,32 +666,40 @@ class HilbertSpace:
                                                           crystal_momentum=k))
 
         elif space == 'KN':
-            (self.dim,
-             self.basis,
-             self.periods) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum)
+            self.dim, self.basis = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            (self.representative_dim,
+             self.representative_basis,
+             self.representative_periods) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum)
+            self.representative_findstate = dict()
+            for a in range(self.representative_dim):
+                self.representative_findstate[tuple(self.representative_basis[a])] = a
             if sym == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = list()
                 for p in (1, -1):
-                    self.subspaces.append(HilbertSubspace(self.basis,  # intentionally avoiding copying
+                    self.subspaces.append(HilbertSubspace(self.representative_basis,  # intentionally avoiding copying
                                                           num_sites,
                                                           n_max,
                                                           space='PKN',
                                                           sym=sym,
                                                           n_tot=n_tot,
                                                           crystal_momentum=crystal_momentum,
-                                                          super_dim=self.dim,
-                                                          super_periods=self.periods,
+                                                          super_dim=self.representative_dim,
+                                                          super_periods=self.representative_periods,
                                                           reflection_parity=p))
 
         elif space == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-            (self.dim,
-             self.basis,
-             self.periods,
-             self.reflection_periods) = gen_basis_pknblock(num_sites, n_tot, n_max, crystal_momentum, reflection_parity)
-
-        else:
-            self.dim = None
-            self.basis = None
+            self.dim, self.basis = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            (self.representative_dim,
+             self.representative_basis,
+             self.representative_periods,
+             self.representative_reflection_periods) = gen_basis_pknblock(num_sites,
+                                                                          n_tot,
+                                                                          n_max,
+                                                                          crystal_momentum,
+                                                                          reflection_parity)
+            self.representative_findstate = dict()
+            for a in range(self.representative_dim):
+                self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         self.findstate = dict()
         for a in range(self.dim):
@@ -698,6 +711,15 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             mat[a, a] = 0.5 * np.sum(state_a * (state_a - 1))
+
+        return mat
+
+    # KN-block Coulomb interaction Hamiltonian
+    def op_hamiltonian_interaction_k(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=float)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            mat[a, a] = 0.5 * np.sum(representative_state_a * (representative_state_a - 1))
 
         return mat
 
@@ -723,7 +745,7 @@ class HilbertSpace:
             self.__op_hop(0, (1,), a, state_a, mat)
             self.__op_hop(self.num_sites - 1, (-1,), a, state_a, mat)
             for i in range(1, self.num_sites - 1):
-                self.__op_hop(i, (-1, 1), a, state_a, mat)
+                self.__op_hop(i, (1, -1), a, state_a, mat)
 
         return mat
 
@@ -733,89 +755,100 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_hop(i, (-1, 1), a, state_a, mat)
+                self.__op_hop(i, (1, -1), a, state_a, mat)
 
         return mat
 
-    # hopping operator
-    def __op_hop_k(self, i: int, d: tuple, a: int, state_a: np.ndarray, period_a: int, mat: np.ndarray):
-        if state_a[i] > 0:
-            n_i = state_a[i]
-            t_state = fock_lower(state_a, i)
+    # KN-block hopping operator
+    def __op_hop_k(self,
+                   i: int,
+                   d: tuple,
+                   a: int,
+                   representative_state_a: np.ndarray,
+                   representative_period_a: int,
+                   mat: np.ndarray):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
                 j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
-                    state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
-                    if tuple(state_b) in self.findstate:
-                        b = self.findstate[tuple(state_b)]
-                        period_b = self.periods[b]
+                    representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                        mat[a, b] += np.sqrt(n_i * (n_j + 1) * period_a / period_b) * complex(np.cos(phase_arg),
-                                                                                              np.sin(phase_arg))
+                        mat[a, b] += np.sqrt(n_i * (n_j + 1) * representative_period_a
+                                             / representative_period_b) * np.exp(1.0j * phase_arg)  # complex conjugated
 
     # KN-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_k(self):
-        mat = np.zeros((self.dim, self.dim), dtype=complex)
-        for a in range(self.dim):
-            state_a = self.basis[a]
-            period_a = self.periods[a]
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
             for i in range(self.num_sites):
-                self.__op_hop_k(i, (-1, 1), a, state_a, period_a, mat)
+                self.__op_hop_k(i, (1, -1), a, representative_state_a, representative_period_a, mat)
 
         return mat
 
-    # hopping operator
+    # PKN-block hopping operator
     def __op_hop_pk(self,
                     i: int,
                     d: tuple,
                     a: int,
-                    state_a: np.ndarray,
-                    period_a: int,
+                    representative_state_a: np.ndarray,
+                    representative_period_a: int,
                     factor_a: float,
                     mat: np.ndarray):
-        if state_a[i] > 0:
-            n_i = state_a[i]
-            t_state = fock_lower(state_a, i)
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
                 j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
-                    state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
-                    state_b, phase, reflection_phase = fock_reflection_representative(state_b, self.num_sites, phase)
-                    if tuple(state_b) in self.findstate:
-                        b = self.findstate[tuple(state_b)]
-                        period_b = self.periods[b]
-                        reflection_period_b = self.reflection_periods[b]
+                    representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
+                    (representative_state_b,
+                     phase,
+                     reflection_phase) = fock_reflection_representative(representative_state_b, self.num_sites, phase)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        representative_reflection_period_b = self.representative_reflection_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                        if reflection_period_b >= 0:
-                            reflection_period_arg_b = (2.0 * np.pi / self.num_sites * self.crystal_momentum
-                                                       * reflection_period_b)
-                            factor_b = 1.0 + self.reflection_parity * np.cos(reflection_period_arg_b)
+                        if representative_reflection_period_b >= 0:
+                            representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
+                                                                      * self.crystal_momentum
+                                                                      * representative_reflection_period_b)
+                            factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
                             factor = (np.cos(phase_arg) + self.reflection_parity
-                                      * np.cos(phase_arg - reflection_period_arg_b))
+                                      * np.cos(phase_arg - representative_reflection_period_arg_b))
                         else:
                             factor_b = 1.0
                             factor = np.cos(phase_arg)
-                        mat[a, b] += (np.sqrt(n_i * (n_j + 1) * period_a / (period_b * factor_a * factor_b))
-                                      * factor * self.reflection_parity ** reflection_phase)
+                        mat[a, b] += (np.sqrt(n_i * (n_j + 1) * representative_period_a
+                                              / (representative_period_b * factor_a * factor_b))
+                                      * factor * self.reflection_parity ** reflection_phase)  # complex conjugated
 
     # PKN-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_pk(self):
-        mat = np.zeros((self.dim, self.dim), dtype=complex)
-        for a in range(self.dim):
-            state_a = self.basis[a]
-            period_a = self.periods[a]
-            reflection_period_a = self.reflection_periods[a]
-            if reflection_period_a >= 0:
-                factor_a = 1.0 + self.reflection_parity * np.cos(2.0 * np.pi / self.num_sites
-                                                                 * self.crystal_momentum * reflection_period_a)
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=float)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            representative_reflection_period_a = self.representative_reflection_periods[a]
+            if representative_reflection_period_a >= 0:
+                factor_a = (1.0 + self.reflection_parity
+                            * np.cos(2.0 * np.pi / self.num_sites
+                                     * self.crystal_momentum * representative_reflection_period_a))
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_hop_pk(i, (-1, 1), a, state_a, period_a, factor_a, mat)
+                self.__op_hop_pk(i, (1, -1), a, representative_state_a, representative_period_a, factor_a, mat)
 
         return mat
 
@@ -868,10 +901,14 @@ class HilbertSubspace(HilbertSpace):
         self.n_max = n_max
         self.n_tot = n_tot
         self.space = space
+        self.dim = None
+        self.basis = None
         self.sym = sym
         self.subspaces = None
         self.crystal_momentum = crystal_momentum
-        self.periods = None
+        self.representative_dim = None
+        self.representative_basis = None
+        self.representative_periods = None
         self.super_dim = super_dim
         self.super_periods = super_periods
         self.reflection_parity = reflection_parity
@@ -879,6 +916,9 @@ class HilbertSubspace(HilbertSpace):
 
         if space == 'N':
             self.dim, self.basis = gen_basis_nblock_from_full(n_tot, super_basis)
+            self.findstate = dict()
+            for a in range(self.dim):
+                self.findstate[tuple(self.basis[a])] = a
             if sym in ('KN', 'PKN'):
                 self.subspaces = list()
                 for k in range(num_sites):
@@ -891,40 +931,44 @@ class HilbertSubspace(HilbertSpace):
                                                           crystal_momentum=k))
 
         elif space == 'KN':
-            (self.dim,
-             self.basis,
-             self.periods) = gen_basis_knblock(num_sites, n_tot, n_max, crystal_momentum, super_basis=super_basis)
+            self.dim, self.basis = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            (self.representative_dim,
+             self.representative_basis,
+             self.representative_periods) = gen_basis_knblock(num_sites,
+                                                              n_tot,
+                                                              n_max,
+                                                              crystal_momentum,
+                                                              super_basis=super_basis)
+            self.representative_findstate = dict()
+            for a in range(self.representative_dim):
+                self.representative_findstate[tuple(self.representative_basis[a])] = a
             if sym == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = list()
                 for p in (1, -1):
-                    self.subspaces.append(HilbertSubspace(self.basis,
+                    self.subspaces.append(HilbertSubspace(self.representative_basis,
                                                           num_sites,
                                                           n_max,
                                                           space='PKN',
                                                           sym=sym,
                                                           n_tot=n_tot,
                                                           crystal_momentum=crystal_momentum,
-                                                          super_dim=self.dim,
-                                                          super_periods=self.periods,
+                                                          super_dim=self.representative_dim,
+                                                          super_periods=self.representative_periods,
                                                           reflection_parity=p))
 
         elif space == 'PKN':
-            (self.dim,
-             self.basis,
-             self.periods,
-             self.reflection_periods) = gen_basis_pknblock(num_sites,
-                                                           n_tot,
-                                                           n_max,
-                                                           crystal_momentum,
-                                                           reflection_parity,
-                                                           super_dim=super_dim,
-                                                           super_basis=super_basis,
-                                                           super_periods=super_periods)
-
-        else:
-            self.dim = None
-            self.basis = None
-
-        self.findstate = dict()
-        for a in range(self.dim):
-            self.findstate[tuple(self.basis[a])] = a
+            self.dim, self.basis = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            (self.representative_dim,
+             self.representative_basis,
+             self.representative_periods,
+             self.representative_reflection_periods) = gen_basis_pknblock(num_sites,
+                                                                          n_tot,
+                                                                          n_max,
+                                                                          crystal_momentum,
+                                                                          reflection_parity,
+                                                                          super_representative_dim=super_dim,
+                                                                          super_representative_basis=super_basis,
+                                                                          super_representative_periods=super_periods)
+            self.representative_findstate = dict()
+            for a in range(self.representative_dim):
+                self.representative_findstate[tuple(self.representative_basis[a])] = a
