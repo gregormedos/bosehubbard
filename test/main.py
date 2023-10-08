@@ -17,16 +17,16 @@ def exact_diagonalization(file: h5py.File,
     param.create_dataset('num_sites', data=hs.num_sites)
     param.create_dataset('n_max', data=hs.n_max)
     param.create_dataset('space', data=hs.space)
-    group.create_dataset('dim', data=hs.dim)
     group.create_dataset('basis', data=hs.basis)
+    group.create_dataset('dim', data=hs.dim)
     if hs.sym is not None:
         param.create_dataset('sym', data=hs.sym)
     if hs.n_tot is not None:
         param.create_dataset('n_tot', data=hs.n_tot)
     if hs.crystal_momentum is not None:
         param.create_dataset('crystal_momentum', data=hs.crystal_momentum)
-        group.create_dataset('representative_dim', data=hs.representative_dim)
         group.create_dataset('representative_basis', data=hs.representative_basis)
+        group.create_dataset('representative_dim', data=hs.representative_dim)
         group.create_dataset('representative_periods', data=hs.representative_periods)
     if hs.reflection_parity is not None:
         param.create_dataset('reflection_parity', data=hs.reflection_parity)
@@ -87,7 +87,7 @@ def get_eigen_states(group: h5py.Group, eigen_states: np.ndarray, findstate: dic
         for a in range(sub_dim):
             sub_state_a = sub_basis[a]
             sub_values_a = sub_eigen_states[a]
-            if sub_space == 'KN':
+            if sub_space in ('K', 'KN'):
                 num_sites = group['param/num_sites'][()]
                 sub_crystal_momentum = group['param/crystal_momentum'][()]
                 for r in range(num_sites):
@@ -95,7 +95,7 @@ def get_eigen_states(group: h5py.Group, eigen_states: np.ndarray, findstate: dic
                     t_sub_state_a = bh.fock_translation(sub_state_a, r)
                     eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
                             sub_values_a * np.exp(1.0j * phase_arg))
-            elif sub_space == 'PKN':
+            elif sub_space in ('PK', 'PKN'):
                 num_sites = group['param/num_sites'][()]
                 sub_crystal_momentum = group['param/crystal_momentum'][()]
                 sub_reflection_parity = group['param/reflection_parity'][()]
@@ -167,7 +167,7 @@ def run(file_name: str,
         findstate = dict()
         for a in range(dim):
             findstate[tuple(basis[a])] = a
-        if space in ('KN', 'PKN'):
+        if space in ('K', 'KN', 'PKN'):
             representative_dim = group['representative_dim'][()]
             eigen_energies = np.empty(representative_dim, dtype=float)
             eigen_states = np.zeros((dim, representative_dim), dtype=complex)
@@ -181,10 +181,8 @@ def run(file_name: str,
         eigen_states /= np.linalg.norm(eigen_states, axis=0)
         eigen_states = eigen_states[:, eigen_energies.argsort()]
         eigen_energies.sort()
-        print(eigen_energies)
         plot_dos(file_name, eigen_energies)
-        print(eigen_states)
-        if space in ('KN', 'PKN'):
+        if space in ('K', 'KN', 'PKN'):
             plot_states(file_name, dim, representative_dim, eigen_energies, eigen_states)
         else:
             plot_states(file_name, dim, dim, eigen_energies, eigen_states)
@@ -193,14 +191,19 @@ def run(file_name: str,
 def main():
     run('data1')
     run('data2', sym='N')
-    run('data3', sym='KN')
-    run('data4', sym='PKN')
-    run('data5', space='N', sym='N', n_tot=5)
-    run('data6', space='N', sym='KN', n_tot=5)
-    run('data7', space='N', sym='PKN', n_tot=5)
-    run('data8', space='KN', sym='KN', n_tot=5, crystal_momentum=0)
-    run('data9', space='KN', sym='PKN', n_tot=5, crystal_momentum=0)
-    run('data10', space='PKN', sym='PKN', n_tot=5, crystal_momentum=0, reflection_parity=-1)
+    run('data3', sym='K')
+    run('data4', sym='KN')
+    run('data5', sym='PK')
+    run('data6', sym='PKN')
+    run('data7', space='N', sym='N', n_tot=5)
+    run('data8', space='N', sym='KN', n_tot=5)
+    run('data9', space='N', sym='PKN', n_tot=5)
+    run('data10', space='K', sym='K', crystal_momentum=0)
+    run('data11', space='K', sym='PK', crystal_momentum=0, reflection_parity=-1)
+    run('data12', space='KN', sym='KN', n_tot=5, crystal_momentum=0)
+    run('data13', space='KN', sym='PKN', n_tot=5, crystal_momentum=0)
+    run('data14', space='PK', sym='PK', crystal_momentum=0, reflection_parity=-1)
+    run('data15', space='PKN', sym='PKN', n_tot=5, crystal_momentum=0, reflection_parity=-1)
 
 
 if __name__ == '__main__':
