@@ -38,10 +38,10 @@ def exact_diagonalization(file: h5py.File,
             exact_diagonalization(file, group.create_group(f'subspaces/{i:04d}'), subspace, tunneling_rate, repulsion_strength)
     else:
         spectrum = group.create_group('spectrum')
-        if hs.space == 'PKN':
+        if hs.space in ('PK', 'PKN'):
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pk()
             hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
-        elif hs.space == 'KN':
+        elif hs.space in ('K', 'KN'):
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_k()
             hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
         else:
@@ -60,7 +60,7 @@ def get_eigen_energies(group: h5py.Group, eigen_energies: np.ndarray, counter: l
             get_eigen_energies(group[f'subspaces/{subspace_name}'], eigen_energies, counter)
     else:
         sub_space = group['param/space'][()].decode()
-        if sub_space in ('KN', 'PKN'):
+        if sub_space in ('K', 'KN', 'PK', 'PKN'):
             sub_dim = group['representative_dim'][()]
         else:
             sub_dim = group['dim'][()]
@@ -76,7 +76,7 @@ def get_eigen_states(group: h5py.Group, eigen_states: np.ndarray, findstate: dic
             get_eigen_states(group[f'subspaces/{subspace_name}'], eigen_states, findstate, counter)
     else:
         sub_space = group['param/space'][()].decode()
-        if sub_space in ('KN', 'PKN'):
+        if sub_space in ('K', 'KN', 'PK', 'PKN'):
             sub_dim = group['representative_dim'][()]
             sub_basis = group['representative_basis'][()]
         else:
@@ -162,12 +162,12 @@ def run(file_name: str,
         exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength)
     with h5py.File(f'{file_name}.h5', 'r') as file:
         group = file['data']
-        dim = group['dim'][()]
         basis = group['basis'][()]
+        dim = group['dim'][()]
         findstate = dict()
         for a in range(dim):
             findstate[tuple(basis[a])] = a
-        if space in ('K', 'KN', 'PKN'):
+        if space in ('K', 'KN', 'PK', 'PKN'):
             representative_dim = group['representative_dim'][()]
             eigen_energies = np.empty(representative_dim, dtype=float)
             eigen_states = np.zeros((dim, representative_dim), dtype=complex)
@@ -182,7 +182,7 @@ def run(file_name: str,
         eigen_states = eigen_states[:, eigen_energies.argsort()]
         eigen_energies.sort()
         plot_dos(file_name, eigen_energies)
-        if space in ('K', 'KN', 'PKN'):
+        if space in ('K', 'KN', 'PK', 'PKN'):
             plot_states(file_name, dim, representative_dim, eigen_energies, eigen_states)
         else:
             plot_states(file_name, dim, dim, eigen_energies, eigen_states)
@@ -195,14 +195,14 @@ def main():
     run('data4', sym='KN')
     run('data5', sym='PK')
     run('data6', sym='PKN')
-    run('data7', space='N', sym='N', n_tot=5)
+    run('data7', space='N', n_tot=5)
     run('data8', space='N', sym='KN', n_tot=5)
     run('data9', space='N', sym='PKN', n_tot=5)
-    run('data10', space='K', sym='K', crystal_momentum=0)
-    run('data11', space='K', sym='PK', crystal_momentum=0, reflection_parity=-1)
-    run('data12', space='KN', sym='KN', n_tot=5, crystal_momentum=0)
+    run('data10', space='K', crystal_momentum=0)
+    run('data11', space='K', sym='PK', crystal_momentum=0)
+    run('data12', space='KN', n_tot=5, crystal_momentum=0)
     run('data13', space='KN', sym='PKN', n_tot=5, crystal_momentum=0)
-    run('data14', space='PK', sym='PK', crystal_momentum=0, reflection_parity=-1)
+    run('data14', space='PK', crystal_momentum=0, reflection_parity=-1)
     run('data15', space='PKN', sym='PKN', n_tot=5, crystal_momentum=0, reflection_parity=-1)
 
 
