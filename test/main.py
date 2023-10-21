@@ -195,15 +195,15 @@ def main():
     run('data4', sym='KN')
     run('data5', sym='PK')
     run('data6', sym='PKN')
-    run('data7', space='N', n_tot=5)
-    run('data8', space='N', sym='KN', n_tot=5)
-    run('data9', space='N', sym='PKN', n_tot=5)
+    run('data7', space='N', n_tot=3)
+    run('data8', space='N', sym='KN', n_tot=3)
+    run('data9', space='N', sym='PKN', n_tot=3)
     run('data10', space='K', crystal_momentum=0)
     run('data11', space='K', sym='PK', crystal_momentum=0)
-    run('data12', space='KN', n_tot=5, crystal_momentum=0)
-    run('data13', space='KN', sym='PKN', n_tot=5, crystal_momentum=0)
-    run('data14', space='PK', crystal_momentum=0, reflection_parity=-1)
-    run('data15', space='PKN', sym='PKN', n_tot=5, crystal_momentum=0, reflection_parity=-1)
+    run('data12', space='KN', n_tot=3, crystal_momentum=0)
+    run('data13', space='KN', sym='PKN', n_tot=3, crystal_momentum=0)
+    run('data14', space='PK', crystal_momentum=0, reflection_parity=1)
+    run('data15', space='PKN', sym='PKN', n_tot=3, crystal_momentum=0, reflection_parity=1)
 
 
 if __name__ == '__main__':

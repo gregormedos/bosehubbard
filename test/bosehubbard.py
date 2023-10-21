@@ -502,10 +502,14 @@ def gen_basis_kblock(basis: np.ndarray, num_sites: int, crystal_momentum: int):
     return representative_basis, representative_periods, representative_dim
 
 
-def gen_basis_pkblock(super_representative_basis: np.ndarray, super_representative_periods: np.ndarray,
-                      super_representative_dim: int,
-                      num_sites: int, crystal_momentum: int,
-                      reflection_parity: int):
+def gen_basis_pkblock(
+        super_representative_basis: np.ndarray,
+        super_representative_periods: np.ndarray,
+        super_representative_dim: int,
+        num_sites: int,
+        crystal_momentum: int,
+        reflection_parity: int
+        ):
     """
     Generate the PK-block Hilbert space representative Fock basis,
     given the number of sites `num_sites`, the total number of bosons `n_tot`,
@@ -546,11 +550,14 @@ def gen_basis_pkblock(super_representative_basis: np.ndarray, super_representati
     for a in range(super_representative_dim):
         representative_state_a = super_representative_basis[a]
         representative_period = super_representative_periods[a]
-        representative_period, representative_reflection_period = fock_checkstate_reflection(representative_state_a,
-                                                                                             representative_period)
+        representative_period, representative_reflection_period = fock_checkstate_reflection(
+            representative_state_a,
+            representative_period
+            )
         if representative_reflection_period != -1:
-            if 1.0 + reflection_parity * np.cos(2.0 * np.pi / num_sites
-                                                * crystal_momentum * representative_reflection_period) == 0.0:
+            if (1.0 + reflection_parity
+                * np.cos(2.0 * np.pi / num_sites
+                         * crystal_momentum * representative_reflection_period) == 0.0):
                 representative_period = -1
         if representative_period > 0:
             representative_state_list.append(representative_state_a)  # intentionally avoiding copying
@@ -602,20 +609,22 @@ class HilbertSpace:
     
     """
 
-    def __init__(self,
-                 num_sites: int,
-                 n_max: int,
-                 space: str = 'full',
-                 sym: str = None,
-                 n_tot: int = None,
-                 crystal_momentum: int = None,
-                 reflection_parity: int = None,
-                 super_basis: np.ndarray = None,
-                 super_findstate: dict = None,
-                 super_dim: int = None,
-                 super_representative_basis: np.ndarray = None,
-                 super_representative_periods: np.ndarray = None,
-                 super_representative_dim: int = None):
+    def __init__(
+            self,
+            num_sites: int,
+            n_max: int,
+            space: str = 'full',
+            sym: str = None,
+            n_tot: int = None,
+            crystal_momentum: int = None,
+            reflection_parity: int = None,
+            super_basis: np.ndarray = None,
+            super_findstate: dict = None,
+            super_dim: int = None,
+            super_representative_basis: np.ndarray = None,
+            super_representative_periods: np.ndarray = None,
+            super_representative_dim: int = None
+            ):
         self.num_sites = num_sites
         self.n_max = n_max
         self.space = space
@@ -642,25 +651,33 @@ class HilbertSpace:
             if sym in ('N', 'KN', 'PKN'):
                 self.subspaces = list()
                 for n in range(num_sites * n_max + 1):
-                    self.subspaces.append(HilbertSpace(num_sites,
-                                                       n_max,
-                                                       'N',
-                                                       sym,
-                                                       n_tot=n,
-                                                       super_basis=self.basis,  # intentionally avoiding copying
-                                                       super_findstate=self.findstate,
-                                                       super_dim=self.dim))
+                    self.subspaces.append(
+                        HilbertSpace(
+                            num_sites,
+                            n_max,
+                            'N',
+                            sym,
+                            n_tot=n,
+                            super_basis=self.basis,  # intentionally avoiding copying
+                            super_findstate=self.findstate,
+                            super_dim=self.dim
+                            )
+                        )
             elif sym in ('K', 'PK'):
                 self.subspaces = list()
                 for k in range(num_sites):
-                    self.subspaces.append(HilbertSpace(num_sites,
-                                                       n_max,
-                                                       'K',
-                                                       sym,
-                                                       crystal_momentum=k,
-                                                       super_basis=self.basis,  # intentionally avoiding copying
-                                                       super_findstate=self.findstate,
-                                                       super_dim=self.dim))
+                    self.subspaces.append(
+                        HilbertSpace(
+                            num_sites,
+                            n_max,
+                            'K',
+                            sym,
+                            crystal_momentum=k,
+                            super_basis=self.basis,  # intentionally avoiding copying
+                            super_findstate=self.findstate,
+                            super_dim=self.dim
+                            )
+                        )
 
         elif space == 'N':
             if super_basis is None:
@@ -673,15 +690,19 @@ class HilbertSpace:
             if sym in ('KN', 'PKN'):
                 self.subspaces = list()
                 for k in range(num_sites):
-                    self.subspaces.append(HilbertSpace(num_sites,
-                                                       n_max,
-                                                       'KN',
-                                                       sym,
-                                                       n_tot=n_tot,
-                                                       crystal_momentum=k,
-                                                       super_basis=self.basis,  # intentionally avoiding copying
-                                                       super_findstate=self.findstate,
-                                                       super_dim=self.dim,))
+                    self.subspaces.append(
+                        HilbertSpace(
+                            num_sites,
+                            n_max,
+                            'KN',
+                            sym,
+                            n_tot=n_tot,
+                            crystal_momentum=k,
+                            super_basis=self.basis,  # intentionally avoiding copying
+                            super_findstate=self.findstate,
+                            super_dim=self.dim
+                            )
+                        )
 
         elif space == 'K':
             if super_basis is None:
@@ -694,27 +715,33 @@ class HilbertSpace:
                 self.basis = super_basis
                 self.findstate = super_findstate
                 self.dim = super_dim
-            (self.representative_basis,
-             self.representative_periods,
-             self.representative_dim) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+            (
+                self.representative_basis,
+                self.representative_periods,
+                self.representative_dim
+                ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
             if sym == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = list()
                 for p in (1, -1):
-                    self.subspaces.append(HilbertSpace(num_sites,
-                                                       n_max,
-                                                       'PK',
-                                                       sym,
-                                                       crystal_momentum=crystal_momentum,
-                                                       reflection_parity=p,
-                                                       super_basis=self.basis,  # intentionally avoiding copying
-                                                       super_findstate=self.findstate,
-                                                       super_dim=self.dim,
-                                                       super_representative_basis=self.representative_basis,
-                                                       super_representative_periods=self.representative_periods,
-                                                       super_representative_dim=self.representative_dim))
+                    self.subspaces.append(
+                        HilbertSpace(
+                            num_sites,
+                            n_max,
+                            'PK',
+                            sym,
+                            crystal_momentum=crystal_momentum,
+                            reflection_parity=p,
+                            super_basis=self.basis,  # intentionally avoiding copying
+                            super_findstate=self.findstate,
+                            super_dim=self.dim,
+                            super_representative_basis=self.representative_basis,
+                            super_representative_periods=self.representative_periods,
+                            super_representative_dim=self.representative_dim
+                            )
+                        )
 
         elif space == 'KN':
             if super_basis is None:
@@ -726,28 +753,33 @@ class HilbertSpace:
                 self.basis = super_basis
                 self.findstate = super_findstate
                 self.dim = super_dim
-            (self.representative_basis,
-             self.representative_periods,
-             self.representative_dim) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+            (
+                self.representative_basis,
+                self.representative_periods,
+                self.representative_dim) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
             if sym == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = list()
                 for p in (1, -1):
-                    self.subspaces.append(HilbertSpace(num_sites,
-                                                       n_max,
-                                                       space='PKN',
-                                                       sym=sym,
-                                                       n_tot=n_tot,
-                                                       crystal_momentum=crystal_momentum,
-                                                       reflection_parity=p,
-                                                       super_basis=self.basis,  # intentionally avoiding copying
-                                                       super_findstate=self.findstate,
-                                                       super_dim=self.dim,
-                                                       super_representative_basis=self.representative_basis,
-                                                       super_representative_periods=self.representative_periods,
-                                                       super_representative_dim=self.representative_dim))
+                    self.subspaces.append(
+                        HilbertSpace(
+                            num_sites,
+                            n_max,
+                            space='PKN',
+                            sym=sym,
+                            n_tot=n_tot,
+                            crystal_momentum=crystal_momentum,
+                            reflection_parity=p,
+                            super_basis=self.basis,  # intentionally avoiding copying
+                            super_findstate=self.findstate,
+                            super_dim=self.dim,
+                            super_representative_basis=self.representative_basis,
+                            super_representative_periods=self.representative_periods,
+                            super_representative_dim=self.representative_dim
+                            )
+                        )
 
         elif space == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             if super_basis is None and super_representative_basis is None:
@@ -756,9 +788,11 @@ class HilbertSpace:
                 self.findstate = dict()
                 for a in range(self.dim):
                     self.findstate[tuple(self.basis[a])] = a
-                (representative_basis,
-                 representative_periods,
-                 representative_dim) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+                (
+                    representative_basis,
+                    representative_periods,
+                    representative_dim
+                    ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             else:
                 self.basis = super_basis
                 self.findstate = super_findstate
@@ -766,13 +800,18 @@ class HilbertSpace:
                 representative_basis = super_representative_basis
                 representative_periods = super_representative_periods
                 representative_dim = super_representative_dim
-            (self.representative_basis,
-             self.representative_periods,
-             self.representative_reflection_periods,
-             self.representative_dim) = gen_basis_pkblock(representative_basis, representative_periods,
-                                                          representative_dim,
-                                                          num_sites, crystal_momentum,
-                                                          reflection_parity)
+            (
+                self.representative_basis,
+                self.representative_periods,
+                self.representative_reflection_periods,
+                self.representative_dim
+                ) = gen_basis_pkblock(
+                    representative_basis,
+                    representative_periods,
+                    representative_dim,
+                    num_sites, crystal_momentum,
+                    reflection_parity
+                    )
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
@@ -783,9 +822,11 @@ class HilbertSpace:
                 self.findstate = dict()
                 for a in range(self.dim):
                     self.findstate[tuple(self.basis[a])] = a
-                (representative_basis,
-                 representative_periods,
-                 representative_dim) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+                (
+                    representative_basis,
+                    representative_periods,
+                    representative_dim
+                    ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             else:
                 self.basis = super_basis
                 self.findstate = super_findstate
@@ -793,13 +834,18 @@ class HilbertSpace:
                 representative_basis = super_representative_basis
                 representative_periods = super_representative_periods
                 representative_dim = super_representative_dim
-            (self.representative_basis,
-             self.representative_periods,
-             self.representative_reflection_periods,
-             self.representative_dim) = gen_basis_pkblock(representative_basis, representative_periods,
-                                                          representative_dim,
-                                                          num_sites, crystal_momentum,
-                                                          reflection_parity)
+            (
+                self.representative_basis,
+                self.representative_periods,
+                self.representative_reflection_periods,
+                self.representative_dim
+                ) = gen_basis_pkblock(
+                    representative_basis,
+                    representative_periods,
+                    representative_dim,
+                    num_sites, crystal_momentum,
+                    reflection_parity
+                    )
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
@@ -823,7 +869,7 @@ class HilbertSpace:
         return mat
 
     # hopping operator
-    def __op_hop(self, i: int, d: tuple, a: int, state_a: np.ndarray, mat: np.ndarray):
+    def __op_hop(self, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = fock_lower(state_a, i)
@@ -841,10 +887,10 @@ class HilbertSpace:
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
-            self.__op_hop(0, (1,), a, state_a, mat)
-            self.__op_hop(self.num_sites - 1, (-1,), a, state_a, mat)
+            self.__op_hop(mat, state_a, 0, (1,), a)
+            self.__op_hop(mat, state_a, self.num_sites - 1, (-1,), a)
             for i in range(1, self.num_sites - 1):
-                self.__op_hop(i, (1, -1), a, state_a, mat)
+                self.__op_hop(mat, state_a, i, (1, -1), a)
 
         return mat
 
@@ -854,18 +900,20 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_hop(i, (1, -1), a, state_a, mat)
+                self.__op_hop(mat, state_a, i, (1, -1), a)
 
         return mat
 
     # K-block hopping operator
-    def __op_hop_k(self,
-                   i: int,
-                   d: tuple,
-                   a: int,
-                   representative_state_a: np.ndarray,
-                   representative_period_a: int,
-                   mat: np.ndarray):
+    def __op_hop_k(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            i: int,
+            d: tuple,
+            a: int
+            ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             t_state = fock_lower(representative_state_a, i)
@@ -889,19 +937,21 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             representative_period_a = self.representative_periods[a]
             for i in range(self.num_sites):
-                self.__op_hop_k(i, (1, -1), a, representative_state_a, representative_period_a, mat)
+                self.__op_hop_k(mat, representative_state_a, representative_period_a, i, (1, -1), a)
 
         return mat
 
     # PK-block hopping operator
-    def __op_hop_pk(self,
-                    i: int,
-                    d: tuple,
-                    a: int,
-                    representative_state_a: np.ndarray,
-                    representative_period_a: int,
-                    factor_a: float,
-                    mat: np.ndarray):
+    def __op_hop_pk(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            factor_a: float,
+            i: int,
+            d: tuple,
+            a: int
+            ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             t_state = fock_lower(representative_state_a, i)
@@ -950,12 +1000,12 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_hop_pk(i, (1, -1), a, representative_state_a, representative_period_a, factor_a, mat)
+                self.__op_hop_pk(mat, representative_state_a, representative_period_a, factor_a, i, (1, -1), a)
 
         return mat
 
     # annihilation operator
-    def __op_annihilate(self, i: int, a: int, state_a: np.ndarray, mat: np.ndarray):
+    def __op_annihilate(self, mat: np.ndarray, state_a: np.ndarray, i: int, a: int):
         if state_a[i] > 0:
             n_i = state_a[i]
             state_b = fock_lower(state_a, i)
@@ -963,7 +1013,7 @@ class HilbertSpace:
             mat[a, b] += np.sqrt(n_i)
 
     # pair annihilation operator
-    def __op_annihilate_pair(self, i: int, d: tuple, a: int, state_a: np.ndarray, mat: np.ndarray):
+    def __op_annihilate_pair(self, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
         if state_a[i] > 0:
             n_i = state_a[i]
             t_state = fock_lower(state_a, i)
@@ -977,7 +1027,7 @@ class HilbertSpace:
                     mat[a, b] += np.sqrt(n_i * n_j)
 
     # creation operator
-    def __op_create(self, i: int, a: int, state_a: np.ndarray, mat: np.ndarray):
+    def __op_create(self, mat: np.ndarray, state_a: np.ndarray, i: int, a: int):
         if state_a[i] < self.n_max:
             n_i = state_a[i]
             state_b = fock_raise(state_a, i)
@@ -985,7 +1035,7 @@ class HilbertSpace:
             mat[a, b] += np.sqrt(n_i + 1)
 
     # pair creation operator
-    def __op_create_pair(self, i: int, d: tuple, a: int, state_a: np.ndarray, mat: np.ndarray):
+    def __op_create_pair(self, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
         if state_a[i] < self.n_max:
             n_i = state_a[i]
             t_state = fock_raise(state_a, i)
@@ -998,35 +1048,35 @@ class HilbertSpace:
                     b = self.findstate[tuple(state_b)]
                     mat[a, b] += np.sqrt((n_i + 1) * (n_j + 1))
 
-    # creation Hamiltonian
-    def op_hamiltonian_create(self):
+    # annihilation and creation Hamiltonian
+    def op_hamiltonian_annihilate_create(self):
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_annihilate(i, a, state_a, mat)
-                self.__op_create(i, a, state_a, mat)
+                self.__op_annihilate(mat, state_a, i, a)
+                self.__op_create(mat, state_a, i, a)
 
         return mat
     
-    # pair creation Hamiltonian with OBC
-    def op_hamiltonian_create_pair_obc(self):
+    # pair annihilation and creation Hamiltonian with OBC
+    def op_hamiltonian_annihilate_create_pair_obc(self):
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites - 1):
-                self.__op_annihilate_pair(i, (1,), a, state_a, mat)
-                self.__op_create_pair(i, (1,), a, state_a, mat)
+                self.__op_annihilate_pair(mat, state_a, i, (1,), a)
+                self.__op_create_pair(mat, state_a, i, (1,), a)
 
         return mat
     
-    # pair creation Hamiltonian with PBC
-    def op_hamiltonian_create_pair_pbc(self):
+    # pair annihilation and creation Hamiltonian with PBC
+    def op_hamiltonian_annihilate_create_pair_pbc(self):
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_annihilate_pair(i, (1,), a, state_a, mat)
-                self.__op_create_pair(i, (1,), a, state_a, mat)
+                self.__op_annihilate_pair(mat, state_a, i, (1,), a)
+                self.__op_create_pair(mat, state_a, i, (1,), a)
 
         return mat
