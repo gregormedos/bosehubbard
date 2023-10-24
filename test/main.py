@@ -8,11 +8,15 @@ plt.rcParams.update({'text.usetex': True,
                      'font.size': 18})
 
 
-def exact_diagonalization(file: h5py.File,
-                          group: h5py.Group,
-                          hs: bh.HilbertSpace,
-                          tunneling_rate: float,
-                          repulsion_strength: float):
+def exact_diagonalization(
+        file: h5py.File,
+        group: h5py.Group,
+        hs: bh.HilbertSpace,
+        tunneling_rate: float,
+        repulsion_strength: float,
+        particle_transfer_rate: float,
+        pair_production_rate: float
+        ):
     param = group.create_group('param')
     param.create_dataset('num_sites', data=hs.num_sites)
     param.create_dataset('n_max', data=hs.n_max)
@@ -35,19 +39,35 @@ def exact_diagonalization(file: h5py.File,
     if hs.subspaces is not None:
         group.create_group('subspaces')
         for i, subspace in enumerate(hs.subspaces):
-            exact_diagonalization(file, group.create_group(f'subspaces/{i:04d}'), subspace, tunneling_rate, repulsion_strength)
+            exact_diagonalization(file, group.create_group(
+                f'subspaces/{i:04d}'),
+                subspace,
+                tunneling_rate,
+                repulsion_strength,
+                particle_transfer_rate,
+                pair_production_rate
+                )
     else:
         spectrum = group.create_group('spectrum')
         if hs.space in ('PK', 'PKN'):
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pk()
             hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
+            hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create_k()
+            hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_k()
         elif hs.space in ('K', 'KN'):
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_k()
             hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
+            hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create_k()
+            hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_k()
         else:
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pbc()
             hamiltonian_interaction = hs.op_hamiltonian_interaction()
-        hamiltonian = - tunneling_rate * hamiltonian_tunnel + repulsion_strength * hamiltonian_interaction
+            hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create()
+            hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_pbc()
+        hamiltonian = (- tunneling_rate * hamiltonian_tunnel
+                       + repulsion_strength * hamiltonian_interaction
+                       + particle_transfer_rate * hamiltonian_annihilate_create
+                       + pair_production_rate * hamiltonian_annihilate_create_pair)
         eigen_energies, eigen_states = np.linalg.eigh(hamiltonian)
         spectrum.create_dataset('eigen_energies', data=eigen_energies)
         spectrum.create_dataset('eigen_states', data=eigen_states)
@@ -149,6 +169,8 @@ def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarr
 def run(file_name: str,
         tunneling_rate: float = 1.0,
         repulsion_strength: float = 1.0,
+        particle_transfer_rate: float = 1.0,
+        pair_production_rate: float = 1.0,
         num_sites: int = 5,
         n_max: int = 2,
         space: str = 'full',
@@ -159,7 +181,7 @@ def run(file_name: str,
     with h5py.File(f'{file_name}.h5', 'w') as file:
         group = file.create_group('data')
         hs = bh.HilbertSpace(num_sites, n_max, space, sym, n_tot, crystal_momentum, reflection_parity)
-        exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength)
+        exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength, particle_transfer_rate, pair_production_rate)
     with h5py.File(f'{file_name}.h5', 'r') as file:
         group = file['data']
         basis = group['basis'][()]
