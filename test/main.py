@@ -135,11 +135,11 @@ def get_eigen_states(group: h5py.Group, eigen_states: np.ndarray, findstate: dic
 
 def plot_dos(file_name: str, eigen_energies: np.ndarray):
     plt.figure(dpi=300)
-    plt.hist(eigen_energies, 100)
+    plt.hist(eigen_energies, 60)
     plt.xlabel(r'$E$')
     plt.ylabel(r'$DOS$')
     plt.tight_layout()
-    plt.savefig(f'{file_name}_dos.png')
+    plt.savefig(f'test/{file_name}_dos.png')
     plt.close()
 
 
@@ -153,7 +153,7 @@ def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarr
     plt.xlabel(r'$\underline{n}$')
     plt.ylabel(r'$Re(\psi)$')
     plt.tight_layout()
-    plt.savefig(f'{file_name}_states_real.png')
+    plt.savefig(f'test/{file_name}_states_real.png')
     plt.close()
     plt.figure(dpi=300)
     for i, color in enumerate(colors):
@@ -162,15 +162,15 @@ def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarr
     plt.xlabel(r'$\underline{n}$')
     plt.ylabel(r'$Im(\psi)$')
     plt.tight_layout()
-    plt.savefig(f'{file_name}_states_imag.png')
+    plt.savefig(f'test/{file_name}_states_imag.png')
     plt.close()
 
 
 def run(file_name: str,
         tunneling_rate: float = 1.0,
-        repulsion_strength: float = 1.0,
-        particle_transfer_rate: float = 1.0,
-        pair_production_rate: float = 1.0,
+        repulsion_strength: float = 0.0,
+        particle_transfer_rate: float = 0.0,
+        pair_production_rate: float = 0.0,
         num_sites: int = 5,
         n_max: int = 2,
         space: str = 'full',
@@ -178,11 +178,11 @@ def run(file_name: str,
         n_tot: int = None,
         crystal_momentum: int = None,
         reflection_parity: int = None):
-    with h5py.File(f'{file_name}.h5', 'w') as file:
+    with h5py.File(f'test/{file_name}.h5', 'w') as file:
         group = file.create_group('data')
         hs = bh.HilbertSpace(num_sites, n_max, space, sym, n_tot, crystal_momentum, reflection_parity)
         exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength, particle_transfer_rate, pair_production_rate)
-    with h5py.File(f'{file_name}.h5', 'r') as file:
+    with h5py.File(f'test/{file_name}.h5', 'r') as file:
         group = file['data']
         basis = group['basis'][()]
         dim = group['dim'][()]

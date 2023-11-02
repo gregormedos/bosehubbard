@@ -337,8 +337,11 @@ def dim_nblock(num_sites: int, n_tot: int):
         Hilbert space dimension
     
     """
-    return (np.math.factorial(num_sites + n_tot - 1) // np.math.factorial(num_sites - 1)
-            // np.math.factorial(n_tot))
+    return (
+        np.math.factorial(num_sites + n_tot - 1)
+        // np.math.factorial(num_sites - 1)
+        // np.math.factorial(n_tot)
+    )
 
 
 def gen_basis_nblock(num_sites: int, n_tot: int, dim: int):
@@ -509,7 +512,7 @@ def gen_basis_pkblock(
         num_sites: int,
         crystal_momentum: int,
         reflection_parity: int
-        ):
+):
     """
     Generate the PK-block Hilbert space representative Fock basis,
     given the number of sites `num_sites`, the total number of bosons `n_tot`,
@@ -553,11 +556,15 @@ def gen_basis_pkblock(
         representative_period, representative_reflection_period = fock_checkstate_reflection(
             representative_state_a,
             representative_period
-            )
+        )
         if representative_reflection_period != -1:
-            if (1.0 + reflection_parity
-                * np.cos(2.0 * np.pi / num_sites
-                         * crystal_momentum * representative_reflection_period) == 0.0):
+            if (
+                1.0 + reflection_parity
+                * np.cos(
+                    2.0 * np.pi / num_sites * crystal_momentum
+                    * representative_reflection_period
+                ) == 0.0
+            ):
                 representative_period = -1
         if representative_period > 0:
             representative_state_list.append(representative_state_a)  # intentionally avoiding copying
@@ -624,7 +631,7 @@ class HilbertSpace:
             super_representative_basis: np.ndarray = None,
             super_representative_periods: np.ndarray = None,
             super_representative_dim: int = None
-            ):
+    ):
         self.num_sites = num_sites
         self.n_max = n_max
         self.space = space
@@ -661,8 +668,8 @@ class HilbertSpace:
                             super_basis=self.basis,  # intentionally avoiding copying
                             super_findstate=self.findstate,
                             super_dim=self.dim
-                            )
                         )
+                    )
             elif sym in ('K', 'PK'):
                 self.subspaces = list()
                 for k in range(num_sites):
@@ -676,8 +683,8 @@ class HilbertSpace:
                             super_basis=self.basis,  # intentionally avoiding copying
                             super_findstate=self.findstate,
                             super_dim=self.dim
-                            )
                         )
+                    )
 
         elif space == 'N':
             if super_basis is None:
@@ -701,8 +708,8 @@ class HilbertSpace:
                             super_basis=self.basis,  # intentionally avoiding copying
                             super_findstate=self.findstate,
                             super_dim=self.dim
-                            )
                         )
+                    )
 
         elif space == 'K':
             if super_basis is None:
@@ -719,7 +726,7 @@ class HilbertSpace:
                 self.representative_basis,
                 self.representative_periods,
                 self.representative_dim
-                ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+            ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
@@ -740,8 +747,8 @@ class HilbertSpace:
                             super_representative_basis=self.representative_basis,
                             super_representative_periods=self.representative_periods,
                             super_representative_dim=self.representative_dim
-                            )
                         )
+                    )
 
         elif space == 'KN':
             if super_basis is None:
@@ -756,7 +763,8 @@ class HilbertSpace:
             (
                 self.representative_basis,
                 self.representative_periods,
-                self.representative_dim) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+                self.representative_dim
+            ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
@@ -778,8 +786,8 @@ class HilbertSpace:
                             super_representative_basis=self.representative_basis,
                             super_representative_periods=self.representative_periods,
                             super_representative_dim=self.representative_dim
-                            )
                         )
+                    )
 
         elif space == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             if super_basis is None and super_representative_basis is None:
@@ -792,7 +800,7 @@ class HilbertSpace:
                     representative_basis,
                     representative_periods,
                     representative_dim
-                    ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+                ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             else:
                 self.basis = super_basis
                 self.findstate = super_findstate
@@ -805,13 +813,13 @@ class HilbertSpace:
                 self.representative_periods,
                 self.representative_reflection_periods,
                 self.representative_dim
-                ) = gen_basis_pkblock(
-                    representative_basis,
-                    representative_periods,
-                    representative_dim,
-                    num_sites, crystal_momentum,
-                    reflection_parity
-                    )
+            ) = gen_basis_pkblock(
+                representative_basis,
+                representative_periods,
+                representative_dim,
+                num_sites, crystal_momentum,
+                reflection_parity
+            )
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
@@ -826,7 +834,7 @@ class HilbertSpace:
                     representative_basis,
                     representative_periods,
                     representative_dim
-                    ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
+                ) = gen_basis_kblock(self.basis, num_sites, crystal_momentum)
             else:
                 self.basis = super_basis
                 self.findstate = super_findstate
@@ -839,13 +847,13 @@ class HilbertSpace:
                 self.representative_periods,
                 self.representative_reflection_periods,
                 self.representative_dim
-                ) = gen_basis_pkblock(
-                    representative_basis,
-                    representative_periods,
-                    representative_dim,
-                    num_sites, crystal_momentum,
-                    reflection_parity
-                    )
+            ) = gen_basis_pkblock(
+                representative_basis,
+                representative_periods,
+                representative_dim,
+                num_sites, crystal_momentum,
+                reflection_parity
+            )
             self.representative_findstate = dict()
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
@@ -914,7 +922,7 @@ class HilbertSpace:
             i: int,
             d: tuple,
             a: int
-            ):
+    ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             t_state = fock_lower(representative_state_a, i)
@@ -928,8 +936,9 @@ class HilbertSpace:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                        mat[a, b] += np.sqrt(n_i * (n_j + 1) * representative_period_a
-                                             / representative_period_b) * np.exp(1.0j * phase_arg)  # complex conjugated
+                        mat[a, b] += np.sqrt(
+                            n_i * (n_j + 1) * representative_period_a / representative_period_b
+                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
 
     # K-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_k(self):
@@ -952,7 +961,7 @@ class HilbertSpace:
             i: int,
             d: tuple,
             a: int
-            ):
+    ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             t_state = fock_lower(representative_state_a, i)
@@ -966,27 +975,35 @@ class HilbertSpace:
                         representative_state_b,
                         phase,
                         reflection_phase
-                        ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+                    ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
                     if tuple(representative_state_b) in self.representative_findstate:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         representative_reflection_period_b = self.representative_reflection_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
                         if representative_reflection_period_b != -1:
-                            representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
-                                                                      * self.crystal_momentum
-                                                                      * representative_reflection_period_b)
+                            representative_reflection_period_arg_b = (
+                                2.0 * np.pi / self.num_sites * self.crystal_momentum
+                                * representative_reflection_period_b
+                            )
                             factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                            factor = ((np.cos(phase_arg) + self.reflection_parity
-                                       * np.cos(phase_arg - representative_reflection_period_arg_b))
-                                      / (1.0 + self.reflection_parity
-                                         * np.cos(representative_reflection_period_arg_b)))
+                            factor = (
+                                (
+                                    np.cos(phase_arg) + self.reflection_parity
+                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
+                                ) / (
+                                    1.0 + self.reflection_parity
+                                    * np.cos(representative_reflection_period_arg_b)
+                                )
+                            )
                         else:
                             factor_b = 1.0
                             factor = np.cos(phase_arg)
-                        mat[b, a] += (np.sqrt(n_i * (n_j + 1) * representative_period_a * factor_b
-                                              / (representative_period_b * factor_a))
-                                      * factor * self.reflection_parity ** reflection_phase)  # NOT complex conjugated
+                        mat[b, a] += (
+                            np.sqrt(n_i * (n_j + 1) * representative_period_a * factor_b
+                                / (representative_period_b * factor_a)
+                            ) * factor * self.reflection_parity ** reflection_phase
+                        )  # NOT complex conjugated
 
     # PK-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_pk(self):
@@ -996,9 +1013,10 @@ class HilbertSpace:
             representative_period_a = self.representative_periods[a]
             representative_reflection_period_a = self.representative_reflection_periods[a]
             if representative_reflection_period_a != -1:
-                representative_reflection_period_arg_a = (2.0 * np.pi / self.num_sites
-                                                          * self.crystal_momentum
-                                                          * representative_reflection_period_a)
+                representative_reflection_period_arg_a = (
+                    2.0 * np.pi / self.num_sites * self.crystal_momentum
+                    * representative_reflection_period_a
+                )
                 factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
             else:
                 factor_a = 1.0
@@ -1096,7 +1114,7 @@ class HilbertSpace:
             representative_period_a: int,
             i: int,
             a: int
-            ):
+    ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             b_state = fock_lower(representative_state_a, i)
@@ -1105,8 +1123,9 @@ class HilbertSpace:
                 b = self.representative_findstate[tuple(representative_state_b)]
                 representative_period_b = self.representative_periods[b]
                 phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                mat[a, b] += np.sqrt(n_i * representative_period_a
-                                     / representative_period_b) * np.exp(1.0j * phase_arg)  # complex conjugated
+                mat[a, b] += np.sqrt(
+                    n_i * representative_period_a / representative_period_b
+                ) * np.exp(1.0j * phase_arg)  # complex conjugated
                 
     # K-block pair annihilation operator
     def __op_annihilate_pair_k(
@@ -1117,7 +1136,7 @@ class HilbertSpace:
             i: int,
             d: tuple,
             a: int
-            ):
+    ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             t_state = fock_lower(representative_state_a, i)
@@ -1131,8 +1150,9 @@ class HilbertSpace:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                        mat[a, b] += np.sqrt(n_i * n_j * representative_period_a
-                                             / representative_period_b) * np.exp(1.0j * phase_arg)  # complex conjugated
+                        mat[a, b] += np.sqrt(
+                            n_i * n_j * representative_period_a / representative_period_b
+                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
                 
     # K-block creation operator
     def __op_create_k(
@@ -1142,7 +1162,7 @@ class HilbertSpace:
             representative_period_a: int,
             i: int,
             a: int
-            ):
+    ):
         if representative_state_a[i] < self.n_max:
             n_i = representative_state_a[i]
             b_state = fock_raise(representative_state_a, i)
@@ -1151,8 +1171,9 @@ class HilbertSpace:
                 b = self.representative_findstate[tuple(representative_state_b)]
                 representative_period_b = self.representative_periods[b]
                 phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                mat[a, b] += np.sqrt((n_i + 1) * representative_period_a
-                                     / representative_period_b) * np.exp(1.0j * phase_arg)  # complex conjugated
+                mat[a, b] += np.sqrt(
+                    (n_i + 1) * representative_period_a / representative_period_b
+                ) * np.exp(1.0j * phase_arg)  # complex conjugated
                 
     # K-block pair creation operator
     def __op_create_pair_k(
@@ -1163,7 +1184,7 @@ class HilbertSpace:
             i: int,
             d: tuple,
             a: int
-            ):
+    ):
         if representative_state_a[i] < self.n_max:
             n_i = representative_state_a[i]
             t_state = fock_raise(representative_state_a, i)
@@ -1177,8 +1198,9 @@ class HilbertSpace:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
-                        mat[a, b] += np.sqrt((n_i + 1) * (n_j + 1) * representative_period_a
-                                             / representative_period_b) * np.exp(1.0j * phase_arg)  # complex conjugated
+                        mat[a, b] += np.sqrt(
+                            (n_i + 1) * (n_j + 1) * representative_period_a / representative_period_b
+                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
 
     # K-block annihilation and creation Hamiltonian
     def op_hamiltonian_annihilate_create_k(self):
@@ -1213,7 +1235,7 @@ class HilbertSpace:
             factor_a: float,
             i: int,
             a: int
-            ):
+    ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             b_state = fock_lower(representative_state_a, i)
@@ -1222,27 +1244,36 @@ class HilbertSpace:
                 representative_state_b,
                 phase,
                 reflection_phase
-                ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+            ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
             if tuple(representative_state_b) in self.representative_findstate:
                 b = self.representative_findstate[tuple(representative_state_b)]
                 representative_period_b = self.representative_periods[b]
                 representative_reflection_period_b = self.representative_reflection_periods[b]
                 phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
                 if representative_reflection_period_b != -1:
-                    representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
-                                                                * self.crystal_momentum
-                                                                * representative_reflection_period_b)
+                    representative_reflection_period_arg_b = (
+                        2.0 * np.pi / self.num_sites * self.crystal_momentum
+                        * representative_reflection_period_b
+                    )
                     factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                    factor = ((np.cos(phase_arg) + self.reflection_parity
-                               * np.cos(phase_arg - representative_reflection_period_arg_b))
-                              / (1.0 + self.reflection_parity
-                                 * np.cos(representative_reflection_period_arg_b)))
+                    factor = (
+                        (
+                            np.cos(phase_arg) + self.reflection_parity
+                            * np.cos(phase_arg - representative_reflection_period_arg_b)
+                        ) / (
+                            1.0 + self.reflection_parity
+                            * np.cos(representative_reflection_period_arg_b)
+                        )
+                    )
                 else:
                     factor_b = 1.0
                     factor = np.cos(phase_arg)
-                mat[b, a] += (np.sqrt(n_i * representative_period_a * factor_b
-                                      / (representative_period_b * factor_a))
-                              * factor * self.reflection_parity ** reflection_phase)  # NOT complex conjugated
+                mat[b, a] += (
+                    np.sqrt(
+                        n_i * representative_period_a * factor_b
+                        / (representative_period_b * factor_a)
+                    ) * factor * self.reflection_parity ** reflection_phase
+                )  # NOT complex conjugated
                         
     # PK-block pair annihilation operator
     def __op_annihilate_pair_pk(
@@ -1254,7 +1285,7 @@ class HilbertSpace:
             i: int,
             d: tuple,
             a: int
-            ):
+    ):
         if representative_state_a[i] > 0:
             n_i = representative_state_a[i]
             t_state = fock_lower(representative_state_a, i)
@@ -1268,27 +1299,36 @@ class HilbertSpace:
                         representative_state_b,
                         phase,
                         reflection_phase
-                        ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+                    ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
                     if tuple(representative_state_b) in self.representative_findstate:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         representative_reflection_period_b = self.representative_reflection_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
                         if representative_reflection_period_b != -1:
-                            representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
-                                                                      * self.crystal_momentum
-                                                                      * representative_reflection_period_b)
+                            representative_reflection_period_arg_b = (
+                                2.0 * np.pi / self.num_sites * self.crystal_momentum
+                                * representative_reflection_period_b
+                            )
                             factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                            factor = ((np.cos(phase_arg) + self.reflection_parity
-                                       * np.cos(phase_arg - representative_reflection_period_arg_b))
-                                      / (1.0 + self.reflection_parity
-                                         * np.cos(representative_reflection_period_arg_b)))
+                            factor = (
+                                (
+                                    np.cos(phase_arg) + self.reflection_parity
+                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
+                                ) / (
+                                    1.0 + self.reflection_parity
+                                    * np.cos(representative_reflection_period_arg_b)
+                                )
+                            )
                         else:
                             factor_b = 1.0
                             factor = np.cos(phase_arg)
-                        mat[b, a] += (np.sqrt(n_i * n_j * representative_period_a * factor_b
-                                              / (representative_period_b * factor_a))
-                                      * factor * self.reflection_parity ** reflection_phase)  # NOT complex conjugated
+                        mat[b, a] += (
+                            np.sqrt(
+                                n_i * n_j * representative_period_a * factor_b
+                                / (representative_period_b * factor_a)
+                            ) * factor * self.reflection_parity ** reflection_phase
+                        )  # NOT complex conjugated
                         
     # PK-block annihilation operator
     def __op_create_pk(
@@ -1299,7 +1339,7 @@ class HilbertSpace:
             factor_a: float,
             i: int,
             a: int
-            ):
+    ):
         if representative_state_a[i] < self.n_max:
             n_i = representative_state_a[i]
             b_state = fock_raise(representative_state_a, i)
@@ -1308,27 +1348,36 @@ class HilbertSpace:
                 representative_state_b,
                 phase,
                 reflection_phase
-                ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+            ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
             if tuple(representative_state_b) in self.representative_findstate:
                 b = self.representative_findstate[tuple(representative_state_b)]
                 representative_period_b = self.representative_periods[b]
                 representative_reflection_period_b = self.representative_reflection_periods[b]
                 phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
                 if representative_reflection_period_b != -1:
-                    representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
-                                                                * self.crystal_momentum
-                                                                * representative_reflection_period_b)
+                    representative_reflection_period_arg_b = (
+                        2.0 * np.pi / self.num_sites * self.crystal_momentum
+                        * representative_reflection_period_b
+                    )
                     factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                    factor = ((np.cos(phase_arg) + self.reflection_parity
-                               * np.cos(phase_arg - representative_reflection_period_arg_b))
-                              / (1.0 + self.reflection_parity
-                                 * np.cos(representative_reflection_period_arg_b)))
+                    factor = (
+                        (
+                            np.cos(phase_arg) + self.reflection_parity
+                            * np.cos(phase_arg - representative_reflection_period_arg_b)
+                        ) / (
+                            1.0 + self.reflection_parity
+                            * np.cos(representative_reflection_period_arg_b)
+                        )
+                    )
                 else:
                     factor_b = 1.0
                     factor = np.cos(phase_arg)
-                mat[b, a] += (np.sqrt((n_i + 1) * representative_period_a * factor_b
-                                      / (representative_period_b * factor_a))
-                              * factor * self.reflection_parity ** reflection_phase)  # NOT complex conjugated
+                mat[b, a] += (
+                    np.sqrt(
+                        (n_i + 1) * representative_period_a * factor_b
+                        / (representative_period_b * factor_a)
+                    ) * factor * self.reflection_parity ** reflection_phase
+                )  # NOT complex conjugated
                         
     # PK-block pair annihilation operator
     def __op_create_pair_pk(
@@ -1340,7 +1389,7 @@ class HilbertSpace:
             i: int,
             d: tuple,
             a: int
-            ):
+    ):
         if representative_state_a[i] < self.n_max:
             n_i = representative_state_a[i]
             t_state = fock_raise(representative_state_a, i)
@@ -1354,27 +1403,36 @@ class HilbertSpace:
                         representative_state_b,
                         phase,
                         reflection_phase
-                        ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+                    ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
                     if tuple(representative_state_b) in self.representative_findstate:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         representative_period_b = self.representative_periods[b]
                         representative_reflection_period_b = self.representative_reflection_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
                         if representative_reflection_period_b != -1:
-                            representative_reflection_period_arg_b = (2.0 * np.pi / self.num_sites
-                                                                      * self.crystal_momentum
-                                                                      * representative_reflection_period_b)
+                            representative_reflection_period_arg_b = (
+                                2.0 * np.pi / self.num_sites * self.crystal_momentum
+                                * representative_reflection_period_b
+                            )
                             factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                            factor = ((np.cos(phase_arg) + self.reflection_parity
-                                       * np.cos(phase_arg - representative_reflection_period_arg_b))
-                                      / (1.0 + self.reflection_parity
-                                         * np.cos(representative_reflection_period_arg_b)))
+                            factor = (
+                                (
+                                    np.cos(phase_arg) + self.reflection_parity
+                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
+                                ) / (
+                                    1.0 + self.reflection_parity
+                                    * np.cos(representative_reflection_period_arg_b)
+                                )
+                            )
                         else:
                             factor_b = 1.0
                             factor = np.cos(phase_arg)
-                        mat[b, a] += (np.sqrt((n_i + 1) * (n_j + 1) * representative_period_a * factor_b
-                                              / (representative_period_b * factor_a))
-                                      * factor * self.reflection_parity ** reflection_phase)  # NOT complex conjugated
+                        mat[b, a] += (
+                            np.sqrt(
+                                (n_i + 1) * (n_j + 1) * representative_period_a * factor_b
+                                / (representative_period_b * factor_a)
+                            ) * factor * self.reflection_parity ** reflection_phase
+                        )  # NOT complex conjugated
 
     # PK-block annihilation and creation Hamiltonian
     def op_hamiltonian_annihilate_create_pk(self):
@@ -1384,9 +1442,10 @@ class HilbertSpace:
             representative_period_a = self.representative_periods[a]
             representative_reflection_period_a = self.representative_reflection_periods[a]
             if representative_reflection_period_a != -1:
-                representative_reflection_period_arg_a = (2.0 * np.pi / self.num_sites
-                                                          * self.crystal_momentum
-                                                          * representative_reflection_period_a)
+                representative_reflection_period_arg_a = (
+                    2.0 * np.pi / self.num_sites * self.crystal_momentum
+                    * representative_reflection_period_a
+                )
                 factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
             else:
                 factor_a = 1.0
@@ -1404,9 +1463,10 @@ class HilbertSpace:
             representative_period_a = self.representative_periods[a]
             representative_reflection_period_a = self.representative_reflection_periods[a]
             if representative_reflection_period_a != -1:
-                representative_reflection_period_arg_a = (2.0 * np.pi / self.num_sites
-                                                          * self.crystal_momentum
-                                                          * representative_reflection_period_a)
+                representative_reflection_period_arg_a = (
+                    2.0 * np.pi / self.num_sites * self.crystal_momentum
+                    * representative_reflection_period_a
+                )
                 factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
             else:
                 factor_a = 1.0
