@@ -883,7 +883,7 @@ class HilbertSpace:
             t_state = fock_lower(state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     state_b = fock_raise(t_state, j)
@@ -928,7 +928,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -967,7 +967,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -1041,7 +1041,7 @@ class HilbertSpace:
             t_state = fock_lower(state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] > 0:
                     n_j = t_state[j]
                     state_b = fock_lower(t_state, j)
@@ -1065,7 +1065,7 @@ class HilbertSpace:
             t_state = fock_raise(state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     state_b = fock_raise(t_state, j)
@@ -1142,7 +1142,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] > 0:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_lower(t_state, j), self.num_sites)
@@ -1190,7 +1190,7 @@ class HilbertSpace:
             t_state = fock_raise(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -1291,7 +1291,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] > 0:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_lower(t_state, j), self.num_sites)
@@ -1395,7 +1395,7 @@ class HilbertSpace:
             t_state = fock_raise(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - round(j / self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
