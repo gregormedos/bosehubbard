@@ -8,9 +8,9 @@ def plot_hamiltonian(hs: bh.HilbertSpace):
     plt.imshow(h)
 
 
-hs = bh.HilbertSpace(5, 2)
+hs = bh.DecomposedHilbertSpace(5, 2)
 plot_hamiltonian(hs)
 for n_tot in range(5 * 2 + 1):
-    hs = bh.HilbertSpace(5, 2, space='N', n_tot=n_tot)
+    hs = bh.DecomposedHilbertSpace(5, 2, space='N', n_tot=n_tot)
     plot_hamiltonian(hs)
 plt.show()

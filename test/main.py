@@ -180,7 +180,7 @@ def run(file_name: str,
         reflection_parity: int = None):
     with h5py.File(f'test/{file_name}.h5', 'w') as file:
         group = file.create_group('data')
-        hs = bh.HilbertSpace(num_sites, n_max, space, sym, n_tot, crystal_momentum, reflection_parity)
+        hs = bh.DecomposedHilbertSpace(num_sites, n_max, space, sym, n_tot, crystal_momentum, reflection_parity)
         exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength, particle_transfer_rate, pair_production_rate)
     with h5py.File(f'test/{file_name}.h5', 'r') as file:
         group = file['data']
