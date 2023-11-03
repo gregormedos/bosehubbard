@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_hamiltonian(hs: bh.HilbertSpace):
-    h = bh.op_hamiltonian_tunnel_pbc(hs)
+    h = hs.op_hamiltonian_tunnel_pbc()
     plt.figure(dpi=100)
     plt.imshow(h)
 

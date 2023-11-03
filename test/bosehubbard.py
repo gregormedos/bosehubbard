@@ -4,12 +4,10 @@ BoseHubbard
 
 Content
 -------
-- Fock states as arrays
-- Transformations on Fock states
+- Operators on Fock states
 - Fock basis generators
-- Representative Fock basis
-- HilbertSpace class for constructing a Fock basis
-- Operators as matrices in the Fock basis
+- HilbertSpace class with methods for constructing operators in its
+  Fock basis
 
 Usage
 -----
@@ -860,648 +858,620 @@ class HilbertSpace:
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
+    # Coulomb interaction Hamiltonian
+    def op_hamiltonian_interaction(self):
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            mat[a, a] = 0.5 * np.sum(state_a * (state_a - 1))
 
-# Coulomb interaction Hamiltonian
-def op_hamiltonian_interaction(hs: HilbertSpace):
-    mat = np.zeros((hs.dim, hs.dim), dtype=float)
-    for a in range(hs.dim):
-        state_a = hs.basis[a]
-        mat[a, a] = 0.5 * np.sum(state_a * (state_a - 1))
+        return mat
 
-    return mat
+    # K-block Coulomb interaction Hamiltonian
+    def op_hamiltonian_interaction_k(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=float)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            mat[a, a] = 0.5 * np.sum(representative_state_a * (representative_state_a - 1))
 
+        return mat
 
-# K-block Coulomb interaction Hamiltonian
-def op_hamiltonian_interaction_k(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=float)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        mat[a, a] = 0.5 * np.sum(representative_state_a * (representative_state_a - 1))
+    # hopping operator
+    def __op_hop(self, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
+        if state_a[i] > 0:
+            n_i = state_a[i]
+            t_state = fock_lower(state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] < self.n_max:
+                    n_j = t_state[j]
+                    state_b = fock_raise(t_state, j)
+                    if tuple(state_b) in self.findstate:
+                        b = self.findstate[tuple(state_b)]
+                        mat[a, b] += np.sqrt(n_i * (n_j + 1))
 
-    return mat
+    # tunneling Hamiltonian with OBC
+    def op_hamiltonian_tunnel_obc(self):
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            self.__op_hop(mat, state_a, 0, (1,), a)
+            self.__op_hop(mat, state_a, self.num_sites - 1, (-1,), a)
+            for i in range(1, self.num_sites - 1):
+                self.__op_hop(mat, state_a, i, (1, -1), a)
 
+        return mat
 
-# hopping operator
-def _op_hop(hs: HilbertSpace, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
-    if state_a[i] > 0:
-        n_i = state_a[i]
-        t_state = fock_lower(state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] < hs.n_max:
-                n_j = t_state[j]
-                state_b = fock_raise(t_state, j)
-                if tuple(state_b) in hs.findstate:
-                    b = hs.findstate[tuple(state_b)]
-                    mat[a, b] += np.sqrt(n_i * (n_j + 1))
+    # tunneling Hamiltonian with PBC
+    def op_hamiltonian_tunnel_pbc(self):
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            for i in range(self.num_sites):
+                self.__op_hop(mat, state_a, i, (1, -1), a)
 
+        return mat
 
-# tunneling Hamiltonian with OBC
-def op_hamiltonian_tunnel_obc(hs: HilbertSpace):
-    mat = np.zeros((hs.dim, hs.dim), dtype=float)
-    for a in range(hs.dim):
-        state_a = hs.basis[a]
-        _op_hop(hs, mat, state_a, 0, (1,), a)
-        _op_hop(hs, mat, state_a, hs.num_sites - 1, (-1,), a)
-        for i in range(1, hs.num_sites - 1):
-            _op_hop(hs, mat, state_a, i, (1, -1), a)
+    # K-block hopping operator
+    def __op_hop_k(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            i: int,
+            d: tuple,
+            a: int
+    ):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            t_state = fock_lower(representative_state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] < self.n_max:
+                    n_j = t_state[j]
+                    representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                        mat[a, b] += np.sqrt(
+                            n_i * (n_j + 1) * representative_period_a / representative_period_b
+                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
 
-    return mat
+    # K-block tunneling Hamiltonian
+    def op_hamiltonian_tunnel_k(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            for i in range(self.num_sites):
+                self.__op_hop_k(mat, representative_state_a, representative_period_a, i, (1, -1), a)
 
+        return mat
 
-# tunneling Hamiltonian with PBC
-def op_hamiltonian_tunnel_pbc(hs: HilbertSpace):
-    mat = np.zeros((hs.dim, hs.dim), dtype=float)
-    for a in range(hs.dim):
-        state_a = hs.basis[a]
-        for i in range(hs.num_sites):
-            _op_hop(hs, mat, state_a, i, (1, -1), a)
-
-    return mat
-
-
-# K-block hopping operator
-def _op_hop_k(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        i: int,
-        d: tuple,
-        a: int
-):
-    if representative_state_a[i] > 0:
-        n_i = representative_state_a[i]
-        t_state = fock_lower(representative_state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] < hs.n_max:
-                n_j = t_state[j]
-                representative_state_b, phase = fock_representative(fock_raise(t_state, j), hs.num_sites)
-                if tuple(representative_state_b) in hs.representative_findstate:
-                    b = hs.representative_findstate[tuple(representative_state_b)]
-                    representative_period_b = hs.representative_periods[b]
-                    phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-                    mat[a, b] += np.sqrt(
-                        n_i * (n_j + 1) * representative_period_a / representative_period_b
-                    ) * np.exp(1.0j * phase_arg)  # complex conjugated
-
-
-# K-block tunneling Hamiltonian
-def op_hamiltonian_tunnel_k(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=complex)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        representative_period_a = hs.representative_periods[a]
-        for i in range(hs.num_sites):
-            _op_hop_k(hs, mat, representative_state_a, representative_period_a, i, (1, -1), a)
-
-    return mat
-
-
-# PK-block hopping operator
-def _op_hop_pk(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        factor_a: float,
-        i: int,
-        d: tuple,
-        a: int
-):
-    if representative_state_a[i] > 0:
-        n_i = representative_state_a[i]
-        t_state = fock_lower(representative_state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] < hs.n_max:
-                n_j = t_state[j]
-                representative_state_b, phase = fock_representative(fock_raise(t_state, j), hs.num_sites)
-                (
-                    representative_state_b,
-                    phase,
-                    reflection_phase
-                ) = fock_representative_reflection(representative_state_b, hs.num_sites, phase)
-                if tuple(representative_state_b) in hs.representative_findstate:
-                    b = hs.representative_findstate[tuple(representative_state_b)]
-                    representative_period_b = hs.representative_periods[b]
-                    representative_reflection_period_b = hs.representative_reflection_periods[b]
-                    phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-                    if representative_reflection_period_b != -1:
-                        representative_reflection_period_arg_b = (
-                                2.0 * np.pi / hs.num_sites * hs.crystal_momentum
+    # PK-block hopping operator
+    def __op_hop_pk(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            factor_a: float,
+            i: int,
+            d: tuple,
+            a: int
+    ):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            t_state = fock_lower(representative_state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] < self.n_max:
+                    n_j = t_state[j]
+                    representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
+                    (
+                        representative_state_b,
+                        phase,
+                        reflection_phase
+                    ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        representative_reflection_period_b = self.representative_reflection_periods[b]
+                        phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                        if representative_reflection_period_b != -1:
+                            representative_reflection_period_arg_b = (
+                                2.0 * np.pi / self.num_sites * self.crystal_momentum
                                 * representative_reflection_period_b
-                        )
-                        factor_b = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                        factor = (
-                            (
-                                    np.cos(phase_arg) + hs.reflection_parity
-                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
-                            ) / (
-                                    1.0 + hs.reflection_parity
-                                    * np.cos(representative_reflection_period_arg_b)
                             )
-                        )
-                    else:
-                        factor_b = 1.0
-                        factor = np.cos(phase_arg)
-                    mat[b, a] += (
+                            factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
+                            factor = (
+                                (
+                                    np.cos(phase_arg) + self.reflection_parity
+                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
+                                ) / (
+                                    1.0 + self.reflection_parity
+                                    * np.cos(representative_reflection_period_arg_b)
+                                )
+                            )
+                        else:
+                            factor_b = 1.0
+                            factor = np.cos(phase_arg)
+                        mat[b, a] += (
                             np.sqrt(n_i * (n_j + 1) * representative_period_a * factor_b
-                            / (representative_period_b * factor_a)
-                        ) * factor * hs.reflection_parity ** reflection_phase
-                    )  # NOT complex conjugated
+                                / (representative_period_b * factor_a)
+                            ) * factor * self.reflection_parity ** reflection_phase
+                        )  # NOT complex conjugated
 
-
-# PK-block tunneling Hamiltonian
-def op_hamiltonian_tunnel_pk(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=float)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        representative_period_a = hs.representative_periods[a]
-        representative_reflection_period_a = hs.representative_reflection_periods[a]
-        if representative_reflection_period_a != -1:
-            representative_reflection_period_arg_a = (
-                    2.0 * np.pi / hs.num_sites * hs.crystal_momentum
+    # PK-block tunneling Hamiltonian
+    def op_hamiltonian_tunnel_pk(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=float)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            representative_reflection_period_a = self.representative_reflection_periods[a]
+            if representative_reflection_period_a != -1:
+                representative_reflection_period_arg_a = (
+                    2.0 * np.pi / self.num_sites * self.crystal_momentum
                     * representative_reflection_period_a
-            )
-            factor_a = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_a)
-        else:
-            factor_a = 1.0
-        for i in range(hs.num_sites):
-            _op_hop_pk(hs, mat, representative_state_a, representative_period_a, factor_a, i, (1, -1), a)
-
-    return mat
-
-
-# annihilation operator
-def _op_annihilate(hs: HilbertSpace, mat: np.ndarray, state_a: np.ndarray, i: int, a: int):
-    if state_a[i] > 0:
-        n_i = state_a[i]
-        state_b = fock_lower(state_a, i)
-        if tuple(state_b) in hs.findstate:
-            b = hs.findstate[tuple(state_b)]
-            mat[a, b] += np.sqrt(n_i)
-
-
-# pair annihilation operator
-def _op_annihilate_pair(hs: HilbertSpace, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
-    if state_a[i] > 0:
-        n_i = state_a[i]
-        t_state = fock_lower(state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] > 0:
-                n_j = t_state[j]
-                state_b = fock_lower(t_state, j)
-                if tuple(state_b) in hs.findstate:
-                    b = hs.findstate[tuple(state_b)]
-                    mat[a, b] += np.sqrt(n_i * n_j)
-
-
-# creation operator
-def _op_create(hs: HilbertSpace, mat: np.ndarray, state_a: np.ndarray, i: int, a: int):
-    if state_a[i] < hs.n_max:
-        n_i = state_a[i]
-        state_b = fock_raise(state_a, i)
-        if tuple(state_b) in hs.findstate:
-            b = hs.findstate[tuple(state_b)]
-            mat[a, b] += np.sqrt(n_i + 1)
-
-
-# pair creation operator
-def _op_create_pair(hs: HilbertSpace, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
-    if state_a[i] < hs.n_max:
-        n_i = state_a[i]
-        t_state = fock_raise(state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] < hs.n_max:
-                n_j = t_state[j]
-                state_b = fock_raise(t_state, j)
-                if tuple(state_b) in hs.findstate:
-                    b = hs.findstate[tuple(state_b)]
-                    mat[a, b] += np.sqrt((n_i + 1) * (n_j + 1))
-
-
-# annihilation and creation Hamiltonian
-def op_hamiltonian_annihilate_create(hs: HilbertSpace):
-    mat = np.zeros((hs.dim, hs.dim), dtype=float)
-    for a in range(hs.dim):
-        state_a = hs.basis[a]
-        for i in range(hs.num_sites):
-            _op_annihilate(hs, mat, state_a, i, a)
-            _op_create(hs, mat, state_a, i, a)
-
-    return mat
-
-
-# pair annihilation and creation Hamiltonian with OBC
-def op_hamiltonian_annihilate_create_pair_obc(hs: HilbertSpace):
-    mat = np.zeros((hs.dim, hs.dim), dtype=float)
-    for a in range(hs.dim):
-        state_a = hs.basis[a]
-        for i in range(hs.num_sites - 1):
-            _op_annihilate_pair(hs, mat, state_a, i, (1,), a)
-            _op_create_pair(hs, mat, state_a, i, (1,), a)
-
-    return mat
-
-
-# pair annihilation and creation Hamiltonian with PBC
-def op_hamiltonian_annihilate_create_pair_pbc(hs: HilbertSpace):
-    mat = np.zeros((hs.dim, hs.dim), dtype=float)
-    for a in range(hs.dim):
-        state_a = hs.basis[a]
-        for i in range(hs.num_sites):
-            _op_annihilate_pair(hs, mat, state_a, i, (1,), a)
-            _op_create_pair(hs, mat, state_a, i, (1,), a)
-
-    return mat
-
-
-# K-block annihilation operator
-def _op_annihilate_k(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        i: int,
-        a: int
-):
-    if representative_state_a[i] > 0:
-        n_i = representative_state_a[i]
-        b_state = fock_lower(representative_state_a, i)
-        representative_state_b, phase = fock_representative(b_state, hs.num_sites)
-        if tuple(representative_state_b) in hs.representative_findstate:
-            b = hs.representative_findstate[tuple(representative_state_b)]
-            representative_period_b = hs.representative_periods[b]
-            phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-            mat[a, b] += np.sqrt(
-                n_i * representative_period_a / representative_period_b
-            ) * np.exp(1.0j * phase_arg)  # complex conjugated
-
-
-# K-block pair annihilation operator
-def _op_annihilate_pair_k(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        i: int,
-        d: tuple,
-        a: int
-):
-    if representative_state_a[i] > 0:
-        n_i = representative_state_a[i]
-        t_state = fock_lower(representative_state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] > 0:
-                n_j = t_state[j]
-                representative_state_b, phase = fock_representative(fock_lower(t_state, j), hs.num_sites)
-                if tuple(representative_state_b) in hs.representative_findstate:
-                    b = hs.representative_findstate[tuple(representative_state_b)]
-                    representative_period_b = hs.representative_periods[b]
-                    phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-                    mat[a, b] += np.sqrt(
-                        n_i * n_j * representative_period_a / representative_period_b
-                    ) * np.exp(1.0j * phase_arg)  # complex conjugated
-
-
-# K-block creation operator
-def _op_create_k(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        i: int,
-        a: int
-):
-    if representative_state_a[i] < hs.n_max:
-        n_i = representative_state_a[i]
-        b_state = fock_raise(representative_state_a, i)
-        representative_state_b, phase = fock_representative(b_state, hs.num_sites)
-        if tuple(representative_state_b) in hs.representative_findstate:
-            b = hs.representative_findstate[tuple(representative_state_b)]
-            representative_period_b = hs.representative_periods[b]
-            phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-            mat[a, b] += np.sqrt(
-                (n_i + 1) * representative_period_a / representative_period_b
-            ) * np.exp(1.0j * phase_arg)  # complex conjugated
-
-
-# K-block pair creation operator
-def _op_create_pair_k(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        i: int,
-        d: tuple,
-        a: int
-):
-    if representative_state_a[i] < hs.n_max:
-        n_i = representative_state_a[i]
-        t_state = fock_raise(representative_state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] < hs.n_max:
-                n_j = t_state[j]
-                representative_state_b, phase = fock_representative(fock_raise(t_state, j), hs.num_sites)
-                if tuple(representative_state_b) in hs.representative_findstate:
-                    b = hs.representative_findstate[tuple(representative_state_b)]
-                    representative_period_b = hs.representative_periods[b]
-                    phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-                    mat[a, b] += np.sqrt(
-                        (n_i + 1) * (n_j + 1) * representative_period_a / representative_period_b
-                    ) * np.exp(1.0j * phase_arg)  # complex conjugated
-
-
-# K-block annihilation and creation Hamiltonian
-def op_hamiltonian_annihilate_create_k(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=complex)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        representative_period_a = hs.representative_periods[a]
-        for i in range(hs.num_sites):
-            _op_annihilate_k(hs, mat, representative_state_a, representative_period_a, i, a)
-            _op_create_k(hs, mat, representative_state_a, representative_period_a, i, a)
-
-    return mat
-
-
-# K-block pair annihilation and creation Hamiltonian
-def op_hamiltonian_annihilate_create_pair_k(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=complex)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        representative_period_a = hs.representative_periods[a]
-        for i in range(hs.num_sites):
-            _op_annihilate_pair_k(hs, mat, representative_state_a, representative_period_a, i, (1,), a)
-            _op_create_pair_k(hs, mat, representative_state_a, representative_period_a, i, (1,), a)
-
-    return mat
-
-
-# PK-block annihilation operator
-def _op_annihilate_pk(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        factor_a: float,
-        i: int,
-        a: int
-):
-    if representative_state_a[i] > 0:
-        n_i = representative_state_a[i]
-        b_state = fock_lower(representative_state_a, i)
-        representative_state_b, phase = fock_representative(b_state, hs.num_sites)
-        (
-            representative_state_b,
-            phase,
-            reflection_phase
-        ) = fock_representative_reflection(representative_state_b, hs.num_sites, phase)
-        if tuple(representative_state_b) in hs.representative_findstate:
-            b = hs.representative_findstate[tuple(representative_state_b)]
-            representative_period_b = hs.representative_periods[b]
-            representative_reflection_period_b = hs.representative_reflection_periods[b]
-            phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-            if representative_reflection_period_b != -1:
-                representative_reflection_period_arg_b = (
-                        2.0 * np.pi / hs.num_sites * hs.crystal_momentum
-                        * representative_reflection_period_b
                 )
-                factor_b = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                factor = (
-                    (
-                            np.cos(phase_arg) + hs.reflection_parity
-                            * np.cos(phase_arg - representative_reflection_period_arg_b)
-                    ) / (
-                            1.0 + hs.reflection_parity
-                            * np.cos(representative_reflection_period_arg_b)
-                    )
-                )
+                factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
             else:
-                factor_b = 1.0
-                factor = np.cos(phase_arg)
-            mat[b, a] += (
-                    np.sqrt(
-                    n_i * representative_period_a * factor_b
-                    / (representative_period_b * factor_a)
-                ) * factor * hs.reflection_parity ** reflection_phase
-            )  # NOT complex conjugated
+                factor_a = 1.0
+            for i in range(self.num_sites):
+                self.__op_hop_pk(mat, representative_state_a, representative_period_a, factor_a, i, (1, -1), a)
 
+        return mat
 
-# PK-block pair annihilation operator
-def _op_annihilate_pair_pk(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        factor_a: float,
-        i: int,
-        d: tuple,
-        a: int
-):
-    if representative_state_a[i] > 0:
-        n_i = representative_state_a[i]
-        t_state = fock_lower(representative_state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] > 0:
-                n_j = t_state[j]
-                representative_state_b, phase = fock_representative(fock_lower(t_state, j), hs.num_sites)
-                (
-                    representative_state_b,
-                    phase,
-                    reflection_phase
-                ) = fock_representative_reflection(representative_state_b, hs.num_sites, phase)
-                if tuple(representative_state_b) in hs.representative_findstate:
-                    b = hs.representative_findstate[tuple(representative_state_b)]
-                    representative_period_b = hs.representative_periods[b]
-                    representative_reflection_period_b = hs.representative_reflection_periods[b]
-                    phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-                    if representative_reflection_period_b != -1:
-                        representative_reflection_period_arg_b = (
-                                2.0 * np.pi / hs.num_sites * hs.crystal_momentum
-                                * representative_reflection_period_b
-                        )
-                        factor_b = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                        factor = (
-                            (
-                                    np.cos(phase_arg) + hs.reflection_parity
-                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
-                            ) / (
-                                    1.0 + hs.reflection_parity
-                                    * np.cos(representative_reflection_period_arg_b)
-                            )
-                        )
-                    else:
-                        factor_b = 1.0
-                        factor = np.cos(phase_arg)
-                    mat[b, a] += (
-                            np.sqrt(
-                            n_i * n_j * representative_period_a * factor_b
-                            / (representative_period_b * factor_a)
-                        ) * factor * hs.reflection_parity ** reflection_phase
-                    )  # NOT complex conjugated
+    # annihilation operator
+    def __op_annihilate(self, mat: np.ndarray, state_a: np.ndarray, i: int, a: int):
+        if state_a[i] > 0:
+            n_i = state_a[i]
+            state_b = fock_lower(state_a, i)
+            if tuple(state_b) in self.findstate:
+                b = self.findstate[tuple(state_b)]
+                mat[a, b] += np.sqrt(n_i)
 
+    # pair annihilation operator
+    def __op_annihilate_pair(self, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
+        if state_a[i] > 0:
+            n_i = state_a[i]
+            t_state = fock_lower(state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] > 0:
+                    n_j = t_state[j]
+                    state_b = fock_lower(t_state, j)
+                    if tuple(state_b) in self.findstate:
+                        b = self.findstate[tuple(state_b)]
+                        mat[a, b] += np.sqrt(n_i * n_j)
 
-# PK-block annihilation operator
-def _op_create_pk(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        factor_a: float,
-        i: int,
-        a: int
-):
-    if representative_state_a[i] < hs.n_max:
-        n_i = representative_state_a[i]
-        b_state = fock_raise(representative_state_a, i)
-        representative_state_b, phase = fock_representative(b_state, hs.num_sites)
-        (
-            representative_state_b,
-            phase,
-            reflection_phase
-        ) = fock_representative_reflection(representative_state_b, hs.num_sites, phase)
-        if tuple(representative_state_b) in hs.representative_findstate:
-            b = hs.representative_findstate[tuple(representative_state_b)]
-            representative_period_b = hs.representative_periods[b]
-            representative_reflection_period_b = hs.representative_reflection_periods[b]
-            phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-            if representative_reflection_period_b != -1:
-                representative_reflection_period_arg_b = (
-                        2.0 * np.pi / hs.num_sites * hs.crystal_momentum
+    # creation operator
+    def __op_create(self, mat: np.ndarray, state_a: np.ndarray, i: int, a: int):
+        if state_a[i] < self.n_max:
+            n_i = state_a[i]
+            state_b = fock_raise(state_a, i)
+            if tuple(state_b) in self.findstate:
+                b = self.findstate[tuple(state_b)]
+                mat[a, b] += np.sqrt(n_i + 1)
+
+    # pair creation operator
+    def __op_create_pair(self, mat: np.ndarray, state_a: np.ndarray, i: int, d: tuple, a: int):
+        if state_a[i] < self.n_max:
+            n_i = state_a[i]
+            t_state = fock_raise(state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] < self.n_max:
+                    n_j = t_state[j]
+                    state_b = fock_raise(t_state, j)
+                    if tuple(state_b) in self.findstate:
+                        b = self.findstate[tuple(state_b)]
+                        mat[a, b] += np.sqrt((n_i + 1) * (n_j + 1))
+
+    # annihilation and creation Hamiltonian
+    def op_hamiltonian_annihilate_create(self):
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            for i in range(self.num_sites):
+                self.__op_annihilate(mat, state_a, i, a)
+                self.__op_create(mat, state_a, i, a)
+
+        return mat
+    
+    # pair annihilation and creation Hamiltonian with OBC
+    def op_hamiltonian_annihilate_create_pair_obc(self):
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            for i in range(self.num_sites - 1):
+                self.__op_annihilate_pair(mat, state_a, i, (1,), a)
+                self.__op_create_pair(mat, state_a, i, (1,), a)
+
+        return mat
+    
+    # pair annihilation and creation Hamiltonian with PBC
+    def op_hamiltonian_annihilate_create_pair_pbc(self):
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            for i in range(self.num_sites):
+                self.__op_annihilate_pair(mat, state_a, i, (1,), a)
+                self.__op_create_pair(mat, state_a, i, (1,), a)
+
+        return mat
+
+    # K-block annihilation operator
+    def __op_annihilate_k(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            i: int,
+            a: int
+    ):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            b_state = fock_lower(representative_state_a, i)
+            representative_state_b, phase = fock_representative(b_state, self.num_sites)
+            if tuple(representative_state_b) in self.representative_findstate:
+                b = self.representative_findstate[tuple(representative_state_b)]
+                representative_period_b = self.representative_periods[b]
+                phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                mat[a, b] += np.sqrt(
+                    n_i * representative_period_a / representative_period_b
+                ) * np.exp(1.0j * phase_arg)  # complex conjugated
+                
+    # K-block pair annihilation operator
+    def __op_annihilate_pair_k(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            i: int,
+            d: tuple,
+            a: int
+    ):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            t_state = fock_lower(representative_state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] > 0:
+                    n_j = t_state[j]
+                    representative_state_b, phase = fock_representative(fock_lower(t_state, j), self.num_sites)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                        mat[a, b] += np.sqrt(
+                            n_i * n_j * representative_period_a / representative_period_b
+                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
+                
+    # K-block creation operator
+    def __op_create_k(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            i: int,
+            a: int
+    ):
+        if representative_state_a[i] < self.n_max:
+            n_i = representative_state_a[i]
+            b_state = fock_raise(representative_state_a, i)
+            representative_state_b, phase = fock_representative(b_state, self.num_sites)
+            if tuple(representative_state_b) in self.representative_findstate:
+                b = self.representative_findstate[tuple(representative_state_b)]
+                representative_period_b = self.representative_periods[b]
+                phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                mat[a, b] += np.sqrt(
+                    (n_i + 1) * representative_period_a / representative_period_b
+                ) * np.exp(1.0j * phase_arg)  # complex conjugated
+                
+    # K-block pair creation operator
+    def __op_create_pair_k(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            i: int,
+            d: tuple,
+            a: int
+    ):
+        if representative_state_a[i] < self.n_max:
+            n_i = representative_state_a[i]
+            t_state = fock_raise(representative_state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] < self.n_max:
+                    n_j = t_state[j]
+                    representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                        mat[a, b] += np.sqrt(
+                            (n_i + 1) * (n_j + 1) * representative_period_a / representative_period_b
+                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
+
+    # K-block annihilation and creation Hamiltonian
+    def op_hamiltonian_annihilate_create_k(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            for i in range(self.num_sites):
+                self.__op_annihilate_k(mat, representative_state_a, representative_period_a, i, a)
+                self.__op_create_k(mat, representative_state_a, representative_period_a, i, a)
+
+        return mat
+    
+    # K-block pair annihilation and creation Hamiltonian
+    def op_hamiltonian_annihilate_create_pair_k(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            for i in range(self.num_sites):
+                self.__op_annihilate_pair_k(mat, representative_state_a, representative_period_a, i, (1,), a)
+                self.__op_create_pair_k(mat, representative_state_a, representative_period_a, i, (1,), a)
+
+        return mat
+
+    # PK-block annihilation operator
+    def __op_annihilate_pk(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            factor_a: float,
+            i: int,
+            a: int
+    ):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            b_state = fock_lower(representative_state_a, i)
+            representative_state_b, phase = fock_representative(b_state, self.num_sites)
+            (
+                representative_state_b,
+                phase,
+                reflection_phase
+            ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+            if tuple(representative_state_b) in self.representative_findstate:
+                b = self.representative_findstate[tuple(representative_state_b)]
+                representative_period_b = self.representative_periods[b]
+                representative_reflection_period_b = self.representative_reflection_periods[b]
+                phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                if representative_reflection_period_b != -1:
+                    representative_reflection_period_arg_b = (
+                        2.0 * np.pi / self.num_sites * self.crystal_momentum
                         * representative_reflection_period_b
-                )
-                factor_b = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                factor = (
-                    (
-                            np.cos(phase_arg) + hs.reflection_parity
-                            * np.cos(phase_arg - representative_reflection_period_arg_b)
-                    ) / (
-                            1.0 + hs.reflection_parity
-                            * np.cos(representative_reflection_period_arg_b)
                     )
-                )
-            else:
-                factor_b = 1.0
-                factor = np.cos(phase_arg)
-            mat[b, a] += (
+                    factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
+                    factor = (
+                        (
+                            np.cos(phase_arg) + self.reflection_parity
+                            * np.cos(phase_arg - representative_reflection_period_arg_b)
+                        ) / (
+                            1.0 + self.reflection_parity
+                            * np.cos(representative_reflection_period_arg_b)
+                        )
+                    )
+                else:
+                    factor_b = 1.0
+                    factor = np.cos(phase_arg)
+                mat[b, a] += (
                     np.sqrt(
-                    (n_i + 1) * representative_period_a * factor_b
-                    / (representative_period_b * factor_a)
-                ) * factor * hs.reflection_parity ** reflection_phase
-            )  # NOT complex conjugated
-
-
-# PK-block pair annihilation operator
-def _op_create_pair_pk(
-        hs: HilbertSpace,
-        mat: np.ndarray,
-        representative_state_a: np.ndarray,
-        representative_period_a: int,
-        factor_a: float,
-        i: int,
-        d: tuple,
-        a: int
-):
-    if representative_state_a[i] < hs.n_max:
-        n_i = representative_state_a[i]
-        t_state = fock_raise(representative_state_a, i)
-        for d_j in d:
-            j = i + d_j
-            j = j - (j // hs.num_sites) * hs.num_sites  # PBC IF NEEDED
-            if t_state[j] < hs.n_max:
-                n_j = t_state[j]
-                representative_state_b, phase = fock_representative(fock_raise(t_state, j), hs.num_sites)
-                (
-                    representative_state_b,
-                    phase,
-                    reflection_phase
-                ) = fock_representative_reflection(representative_state_b, hs.num_sites, phase)
-                if tuple(representative_state_b) in hs.representative_findstate:
-                    b = hs.representative_findstate[tuple(representative_state_b)]
-                    representative_period_b = hs.representative_periods[b]
-                    representative_reflection_period_b = hs.representative_reflection_periods[b]
-                    phase_arg = 2.0 * np.pi / hs.num_sites * hs.crystal_momentum * phase
-                    if representative_reflection_period_b != -1:
-                        representative_reflection_period_arg_b = (
-                                2.0 * np.pi / hs.num_sites * hs.crystal_momentum
+                        n_i * representative_period_a * factor_b
+                        / (representative_period_b * factor_a)
+                    ) * factor * self.reflection_parity ** reflection_phase
+                )  # NOT complex conjugated
+                        
+    # PK-block pair annihilation operator
+    def __op_annihilate_pair_pk(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            factor_a: float,
+            i: int,
+            d: tuple,
+            a: int
+    ):
+        if representative_state_a[i] > 0:
+            n_i = representative_state_a[i]
+            t_state = fock_lower(representative_state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] > 0:
+                    n_j = t_state[j]
+                    representative_state_b, phase = fock_representative(fock_lower(t_state, j), self.num_sites)
+                    (
+                        representative_state_b,
+                        phase,
+                        reflection_phase
+                    ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        representative_reflection_period_b = self.representative_reflection_periods[b]
+                        phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                        if representative_reflection_period_b != -1:
+                            representative_reflection_period_arg_b = (
+                                2.0 * np.pi / self.num_sites * self.crystal_momentum
                                 * representative_reflection_period_b
-                        )
-                        factor_b = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_b)
-                        factor = (
-                            (
-                                    np.cos(phase_arg) + hs.reflection_parity
-                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
-                            ) / (
-                                    1.0 + hs.reflection_parity
-                                    * np.cos(representative_reflection_period_arg_b)
                             )
-                        )
-                    else:
-                        factor_b = 1.0
-                        factor = np.cos(phase_arg)
-                    mat[b, a] += (
+                            factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
+                            factor = (
+                                (
+                                    np.cos(phase_arg) + self.reflection_parity
+                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
+                                ) / (
+                                    1.0 + self.reflection_parity
+                                    * np.cos(representative_reflection_period_arg_b)
+                                )
+                            )
+                        else:
+                            factor_b = 1.0
+                            factor = np.cos(phase_arg)
+                        mat[b, a] += (
                             np.sqrt(
-                            (n_i + 1) * (n_j + 1) * representative_period_a * factor_b
-                            / (representative_period_b * factor_a)
-                        ) * factor * hs.reflection_parity ** reflection_phase
-                    )  # NOT complex conjugated
+                                n_i * n_j * representative_period_a * factor_b
+                                / (representative_period_b * factor_a)
+                            ) * factor * self.reflection_parity ** reflection_phase
+                        )  # NOT complex conjugated
+                        
+    # PK-block annihilation operator
+    def __op_create_pk(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            factor_a: float,
+            i: int,
+            a: int
+    ):
+        if representative_state_a[i] < self.n_max:
+            n_i = representative_state_a[i]
+            b_state = fock_raise(representative_state_a, i)
+            representative_state_b, phase = fock_representative(b_state, self.num_sites)
+            (
+                representative_state_b,
+                phase,
+                reflection_phase
+            ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+            if tuple(representative_state_b) in self.representative_findstate:
+                b = self.representative_findstate[tuple(representative_state_b)]
+                representative_period_b = self.representative_periods[b]
+                representative_reflection_period_b = self.representative_reflection_periods[b]
+                phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                if representative_reflection_period_b != -1:
+                    representative_reflection_period_arg_b = (
+                        2.0 * np.pi / self.num_sites * self.crystal_momentum
+                        * representative_reflection_period_b
+                    )
+                    factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
+                    factor = (
+                        (
+                            np.cos(phase_arg) + self.reflection_parity
+                            * np.cos(phase_arg - representative_reflection_period_arg_b)
+                        ) / (
+                            1.0 + self.reflection_parity
+                            * np.cos(representative_reflection_period_arg_b)
+                        )
+                    )
+                else:
+                    factor_b = 1.0
+                    factor = np.cos(phase_arg)
+                mat[b, a] += (
+                    np.sqrt(
+                        (n_i + 1) * representative_period_a * factor_b
+                        / (representative_period_b * factor_a)
+                    ) * factor * self.reflection_parity ** reflection_phase
+                )  # NOT complex conjugated
+                        
+    # PK-block pair annihilation operator
+    def __op_create_pair_pk(
+            self,
+            mat: np.ndarray,
+            representative_state_a: np.ndarray,
+            representative_period_a: int,
+            factor_a: float,
+            i: int,
+            d: tuple,
+            a: int
+    ):
+        if representative_state_a[i] < self.n_max:
+            n_i = representative_state_a[i]
+            t_state = fock_raise(representative_state_a, i)
+            for d_j in d:
+                j = i + d_j
+                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                if t_state[j] < self.n_max:
+                    n_j = t_state[j]
+                    representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
+                    (
+                        representative_state_b,
+                        phase,
+                        reflection_phase
+                    ) = fock_representative_reflection(representative_state_b, self.num_sites, phase)
+                    if tuple(representative_state_b) in self.representative_findstate:
+                        b = self.representative_findstate[tuple(representative_state_b)]
+                        representative_period_b = self.representative_periods[b]
+                        representative_reflection_period_b = self.representative_reflection_periods[b]
+                        phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * phase
+                        if representative_reflection_period_b != -1:
+                            representative_reflection_period_arg_b = (
+                                2.0 * np.pi / self.num_sites * self.crystal_momentum
+                                * representative_reflection_period_b
+                            )
+                            factor_b = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_b)
+                            factor = (
+                                (
+                                    np.cos(phase_arg) + self.reflection_parity
+                                    * np.cos(phase_arg - representative_reflection_period_arg_b)
+                                ) / (
+                                    1.0 + self.reflection_parity
+                                    * np.cos(representative_reflection_period_arg_b)
+                                )
+                            )
+                        else:
+                            factor_b = 1.0
+                            factor = np.cos(phase_arg)
+                        mat[b, a] += (
+                            np.sqrt(
+                                (n_i + 1) * (n_j + 1) * representative_period_a * factor_b
+                                / (representative_period_b * factor_a)
+                            ) * factor * self.reflection_parity ** reflection_phase
+                        )  # NOT complex conjugated
 
-
-# PK-block annihilation and creation Hamiltonian
-def op_hamiltonian_annihilate_create_pk(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=float)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        representative_period_a = hs.representative_periods[a]
-        representative_reflection_period_a = hs.representative_reflection_periods[a]
-        if representative_reflection_period_a != -1:
-            representative_reflection_period_arg_a = (
-                    2.0 * np.pi / hs.num_sites * hs.crystal_momentum
+    # PK-block annihilation and creation Hamiltonian
+    def op_hamiltonian_annihilate_create_pk(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=float)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            representative_reflection_period_a = self.representative_reflection_periods[a]
+            if representative_reflection_period_a != -1:
+                representative_reflection_period_arg_a = (
+                    2.0 * np.pi / self.num_sites * self.crystal_momentum
                     * representative_reflection_period_a
-            )
-            factor_a = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_a)
-        else:
-            factor_a = 1.0
-        for i in range(hs.num_sites):
-            _op_annihilate_pk(hs, mat, representative_state_a, representative_period_a, factor_a, i, a)
-            _op_create_pk(hs, mat, representative_state_a, representative_period_a, factor_a, i, a)
+                )
+                factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
+            else:
+                factor_a = 1.0
+            for i in range(self.num_sites):
+                self.__op_annihilate_pk(mat, representative_state_a, representative_period_a, factor_a, i, a)
+                self.__op_create_pk(mat, representative_state_a, representative_period_a, factor_a, i, a)
 
-    return mat
-
-
-# PK-block pair annihilation and creation Hamiltonian
-def op_hamiltonian_annihilate_create_pair_pk(hs: HilbertSpace):
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=float)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
-        representative_period_a = hs.representative_periods[a]
-        representative_reflection_period_a = hs.representative_reflection_periods[a]
-        if representative_reflection_period_a != -1:
-            representative_reflection_period_arg_a = (
-                    2.0 * np.pi / hs.num_sites * hs.crystal_momentum
+        return mat
+    
+    # PK-block pair annihilation and creation Hamiltonian
+    def op_hamiltonian_annihilate_create_pair_pk(self):
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=float)
+        for a in range(self.representative_dim):
+            representative_state_a = self.representative_basis[a]
+            representative_period_a = self.representative_periods[a]
+            representative_reflection_period_a = self.representative_reflection_periods[a]
+            if representative_reflection_period_a != -1:
+                representative_reflection_period_arg_a = (
+                    2.0 * np.pi / self.num_sites * self.crystal_momentum
                     * representative_reflection_period_a
-            )
-            factor_a = 1.0 + hs.reflection_parity * np.cos(representative_reflection_period_arg_a)
-        else:
-            factor_a = 1.0
-        for i in range(hs.num_sites):
-            _op_annihilate_pair_pk(hs, mat, representative_state_a, representative_period_a, factor_a, i, (1,), a)
-            _op_create_pair_pk(hs, mat, representative_state_a, representative_period_a, factor_a, i, (1,), a)
+                )
+                factor_a = 1.0 + self.reflection_parity * np.cos(representative_reflection_period_arg_a)
+            else:
+                factor_a = 1.0
+            for i in range(self.num_sites):
+                self.__op_annihilate_pair_pk(mat, representative_state_a, representative_period_a, factor_a, i, (1,), a)
+                self.__op_create_pair_pk(mat, representative_state_a, representative_period_a, factor_a, i, (1,), a)
 
-    return mat
+        return mat

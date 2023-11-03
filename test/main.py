@@ -50,20 +50,20 @@ def exact_diagonalization(
     else:
         spectrum = group.create_group('spectrum')
         if hs.space in ('PK', 'PKN'):
-            hamiltonian_tunnel = bh.op_hamiltonian_tunnel_pk(hs)
-            hamiltonian_interaction = bh.op_hamiltonian_interaction_k(hs)
-            hamiltonian_annihilate_create = bh.op_hamiltonian_annihilate_create_k(hs)
-            hamiltonian_annihilate_create_pair = bh.op_hamiltonian_annihilate_create_pair_k(hs)
+            hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pk()
+            hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
+            hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create_k()
+            hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_k()
         elif hs.space in ('K', 'KN'):
-            hamiltonian_tunnel = bh.op_hamiltonian_tunnel_k(hs)
-            hamiltonian_interaction = bh.op_hamiltonian_interaction_k(hs)
-            hamiltonian_annihilate_create = bh.op_hamiltonian_annihilate_create_k(hs)
-            hamiltonian_annihilate_create_pair = bh.op_hamiltonian_annihilate_create_pair_k(hs)
+            hamiltonian_tunnel = hs.op_hamiltonian_tunnel_k()
+            hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
+            hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create_k()
+            hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_k()
         else:
-            hamiltonian_tunnel = bh.op_hamiltonian_tunnel_pbc(hs)
-            hamiltonian_interaction = bh.op_hamiltonian_interaction(hs)
-            hamiltonian_annihilate_create = bh.op_hamiltonian_annihilate_create(hs)
-            hamiltonian_annihilate_create_pair = bh.op_hamiltonian_annihilate_create_pair_pbc(hs)
+            hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pbc()
+            hamiltonian_interaction = hs.op_hamiltonian_interaction()
+            hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create()
+            hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_pbc()
         hamiltonian = (- tunneling_rate * hamiltonian_tunnel
                        + repulsion_strength * hamiltonian_interaction
                        + particle_transfer_rate * hamiltonian_annihilate_create
