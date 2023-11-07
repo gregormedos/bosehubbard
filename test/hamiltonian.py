@@ -1,16 +1,47 @@
+import numpy as np
 import bosehubbard as bh
 import matplotlib.pyplot as plt
+from matplotlib.colors import CenteredNorm
 
+PRECISION = 14
 
-def plot_hamiltonian(hs: bh.HilbertSpace):
-    h = hs.op_hamiltonian_tunnel_pbc()
-    plt.figure(dpi=100)
-    plt.imshow(h)
+fig, ax = plt.subplots(3, 2)
 
+hs = bh.HilbertSpace(5, 2)
+h = hs.op_hamiltonian_annihilate_create_pair_pbc()
+ax[0, 0].imshow(h, norm=CenteredNorm())
+w = np.linalg.eigvalsh(h)
+w = np.diag(np.round(w, PRECISION))
+ax[0, 1].imshow(w, norm=CenteredNorm())
+s = hs.basis_transformation_n(h)
+h = s.T @ h @ s
+ax[1, 0].imshow(h, norm=CenteredNorm())
+w = np.linalg.eigvalsh(h)
+w = np.diag(np.round(w, PRECISION))
+ax[1, 1].imshow(w, norm=CenteredNorm())
+h = hs.op_hamiltonian_annihilate_create_pair_pbc()
+s = hs.basis_transformation_k(h)
+h = s.conj().T @ h @ s
+ax[2, 0].imshow(np.abs(h), norm=CenteredNorm())
+w = np.linalg.eigvalsh(h)
+w = np.diag(np.round(w, PRECISION))
+ax[2, 1].imshow(w, norm=CenteredNorm())
+plt.tight_layout()
 
-hs = bh.DecomposedHilbertSpace(5, 2)
-plot_hamiltonian(hs)
-for n_tot in range(5 * 2 + 1):
-    hs = bh.DecomposedHilbertSpace(5, 2, space='N', n_tot=n_tot)
-    plot_hamiltonian(hs)
+fig, ax = plt.subplots(2, 2)
+
+hs = bh.HilbertSpace(5, 2, 'K', crystal_momentum=0)
+h = hs.op_hamiltonian_annihilate_create_k()
+ax[0, 0].imshow(np.abs(h), norm=CenteredNorm())
+w = np.linalg.eigvalsh(h)
+w = np.diag(np.round(w, PRECISION))
+ax[0, 1].imshow(w, norm=CenteredNorm())
+s = hs.basis_transformation_pk(h)
+h = s.T @ h @ s
+ax[1, 0].imshow(np.abs(h), norm=CenteredNorm())
+w = np.linalg.eigvalsh(h)
+w = np.diag(np.round(w, PRECISION))
+ax[1, 1].imshow(w, norm=CenteredNorm())
+plt.tight_layout()
+
 plt.show()

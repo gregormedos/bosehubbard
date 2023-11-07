@@ -11,7 +11,7 @@ plt.rcParams.update({'text.usetex': True,
 def exact_diagonalization(
         file: h5py.File,
         group: h5py.Group,
-        hs: bh.HilbertSpace,
+        hs: bh.DecomposedHilbertSpace,
         tunneling_rate: float,
         repulsion_strength: float,
         particle_transfer_rate: float,
@@ -31,10 +31,10 @@ def exact_diagonalization(
         param.create_dataset('crystal_momentum', data=hs.crystal_momentum)
         group.create_dataset('representative_basis', data=hs.representative_basis)
         group.create_dataset('representative_dim', data=hs.representative_dim)
-        group.create_dataset('representative_periods', data=hs.representative_periods)
+        group.create_dataset('representative_periods', data=hs.translation_periods)
     if hs.reflection_parity is not None:
         param.create_dataset('reflection_parity', data=hs.reflection_parity)
-        group.create_dataset('representative_reflection_periods', data=hs.representative_reflection_periods)
+        group.create_dataset('representative_reflection_periods', data=hs.reflection_translation_periods)
     file.flush()
     if hs.subspaces is not None:
         group.create_group('subspaces')
@@ -168,7 +168,7 @@ def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarr
 
 def run(file_name: str,
         tunneling_rate: float = 1.0,
-        repulsion_strength: float = 0.0,
+        repulsion_strength: float = 1.0,
         particle_transfer_rate: float = 0.0,
         pair_production_rate: float = 0.0,
         num_sites: int = 5,
@@ -217,15 +217,15 @@ def main():
     run('data4', sym='KN')
     run('data5', sym='PK')
     run('data6', sym='PKN')
-    run('data7', space='N', n_tot=3)
-    run('data8', space='N', sym='KN', n_tot=3)
-    run('data9', space='N', sym='PKN', n_tot=3)
+    run('data7', space='N', n_tot=5)
+    run('data8', space='N', sym='KN', n_tot=5)
+    run('data9', space='N', sym='PKN', n_tot=5)
     run('data10', space='K', crystal_momentum=0)
     run('data11', space='K', sym='PK', crystal_momentum=0)
-    run('data12', space='KN', n_tot=3, crystal_momentum=0)
-    run('data13', space='KN', sym='PKN', n_tot=3, crystal_momentum=0)
+    run('data12', space='KN', n_tot=5, crystal_momentum=0)
+    run('data13', space='KN', sym='PKN', n_tot=5, crystal_momentum=0)
     run('data14', space='PK', crystal_momentum=0, reflection_parity=1)
-    run('data15', space='PKN', sym='PKN', n_tot=3, crystal_momentum=0, reflection_parity=1)
+    run('data15', space='PKN', sym='PKN', n_tot=5, crystal_momentum=0, reflection_parity=1)
 
 
 if __name__ == '__main__':
