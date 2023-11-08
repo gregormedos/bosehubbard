@@ -472,14 +472,14 @@ def gen_basis_nblock_from_full(super_basis: np.ndarray, n_tot: int):
     return basis, dim
 
 
-def gen_representative_basis_kblock(basis: np.ndarray, num_sites: int, crystal_momentum: int):
+def gen_representative_basis_kblock(super_basis: np.ndarray, num_sites: int, crystal_momentum: int):
     """
     Generate the K-block Hilbert space representative Fock basis, given the number of sites `num_sites`,
     the crystal momentum `crystal_momentum` and the Hilbert space Fock basis `basis`.
 
     Parameters
     ----------
-    basis : np.ndarray
+    super_basis : np.ndarray
         Hilbert space Fock basis
     num_sites : int
         Number of sites
@@ -496,9 +496,11 @@ def gen_representative_basis_kblock(basis: np.ndarray, num_sites: int, crystal_m
         Hilbert space representative dimension
 
     """
+    # we only want the pointers to the Fock states that belong to a
+    # subspace with a good quantum number crystal_momentum
     representative_state_list = list()
     translation_period_list = list()
-    for state_a in basis:
+    for state_a in super_basis:
         period = fock_checkstate(state_a, num_sites, crystal_momentum)
         if period >= 0:
             representative_state_list.append(state_a)  # intentionally avoiding copying
@@ -510,18 +512,60 @@ def gen_representative_basis_kblock(basis: np.ndarray, num_sites: int, crystal_m
     return representative_basis, translation_periods, representative_dim
 
 
+def gen_representative_basis_knblock_from_kblock(
+        super_representative_basis: np.ndarray,
+        super_translation_periods: np.ndarray,
+        n_tot: int
+):
+    """
+    Generate the KN-block Hilbert representative space Fock basis, given the total
+    number of bosons `n_tot` and the K-block Hilbert space representative Fock basis
+    `super_basis`.
+
+    Parameters
+    ----------
+    super_representative_basis : np.ndarray
+        Hilbert space representative Fock basis
+    super_translation_periods : np.ndarray
+        Translation periods of the representative states
+    n_tot : int
+        Total number of bosons
+    
+    Returns
+    -------
+    representative_basis : np.ndarray
+        Hilbert space representative Fock basis
+    translation_periods : np.ndarray
+        Translation periods of the representative states
+    representative_dim : int
+        Hilbert space representative dimension
+
+    """
+    # we only want the pointers to the Fock states that belong to a
+    # subspace with a good quantum number n_tot
+    representative_state_list = list()
+    translation_period_list = list()
+    for state_a, translation_period_a in zip(super_representative_basis, super_translation_periods):
+        if np.sum(state_a) == n_tot:
+            representative_state_list.append(state_a)  # intentionally avoiding copying
+            translation_period_list.append(translation_period_a)
+    representative_basis = np.array(representative_state_list, dtype=int)
+    translation_periods = np.array(translation_period_list, dtype=int)
+    representative_dim = representative_basis.shape[0]
+
+    return representative_basis, translation_periods, representative_dim
+
+
 def gen_representative_basis_pkblock(
         super_representative_basis: np.ndarray,
         super_translation_periods: np.ndarray,
-        super_representative_dim: int,
         num_sites: int,
         crystal_momentum: int,
         reflection_parity: int
 ):
     """
     Generate the PK-block Hilbert space representative Fock basis,
-    given the number of sites `num_sites`, the total number of bosons `n_tot`,
-    the restriction on the maximum number of bosons on site `n_max`,
+    given the number of sites `num_sites`,
     the crystal momentum `crystal_momentum`
     and the reflection parity `reflection_parity`.
 
@@ -531,8 +575,6 @@ def gen_representative_basis_pkblock(
         Hilbert space representative Fock basis
     super_translation_periods : np.ndarray
         Translation periods of the representative states
-    super_representative_dim : int
-        Hilbert space representative dimension
     num_sites : int
         Number of sites
     crystal_momentum : int
@@ -552,29 +594,32 @@ def gen_representative_basis_pkblock(
         Hilbert space representative dimension
 
     """
+    # we only want the pointers to the Fock states that belong to a
+    # subspace with a good quantum number reflection_parity
     representative_state_list = list()
     translation_period_list = list()
     reflection_translation_period_list = list()
-    for a in range(super_representative_dim):
-        representative_state_a = super_representative_basis[a]
-        translation_period = super_translation_periods[a]
-        translation_period, reflection_translation_period = fock_checkstate_reflection(
+    for representative_state_a, translation_period_a in zip(
+        super_representative_basis,
+        super_translation_periods
+    ):
+        translation_period_a, reflection_translation_period_a = fock_checkstate_reflection(
             representative_state_a,
-            translation_period
+            translation_period_a
         )
-        if reflection_translation_period != -1:
+        if reflection_translation_period_a != -1:
             if (
                 1.0 + reflection_parity
                 * np.cos(
                     2.0 * np.pi / num_sites * crystal_momentum
-                    * reflection_translation_period
+                    * reflection_translation_period_a
                 ) == 0.0
             ):
-                translation_period = -1
-        if translation_period > 0:
+                translation_period_a = -1
+        if translation_period_a > 0:
             representative_state_list.append(representative_state_a)  # intentionally avoiding copying
-            translation_period_list.append(translation_period)
-            reflection_translation_period_list.append(reflection_translation_period)
+            translation_period_list.append(translation_period_a)
+            reflection_translation_period_list.append(reflection_translation_period_a)
     representative_basis = np.array(representative_state_list, dtype=int)
     translation_periods = np.array(translation_period_list, dtype=int)
     reflection_translation_periods = np.array(reflection_translation_period_list, dtype=int)
@@ -692,7 +737,6 @@ class HilbertSpace:
             ) = gen_representative_basis_pkblock(
                 representative_basis,
                 translation_periods,
-                representative_dim,
                 num_sites,
                 crystal_momentum,
                 reflection_parity
@@ -719,7 +763,6 @@ class HilbertSpace:
             ) = gen_representative_basis_pkblock(
                 representative_basis,
                 translation_periods,
-                representative_dim,
                 num_sites,
                 crystal_momentum,
                 reflection_parity
@@ -733,7 +776,7 @@ class HilbertSpace:
         change_of_basis_mat = np.zeros_like(mat)
         beginning_of_block = 0
         for n in range(self.num_sites * self.n_max):
-            basis_n, dim_n = gen_basis_nblock_nmax(self.num_sites, n, self.n_max)
+            basis_n, dim_n = gen_basis_nblock_from_full(self.basis, n)
             for a in range(dim_n):
                 state_a = basis_n[a]
                 change_of_basis_mat[self.findstate[tuple(state_a)], beginning_of_block + a] += 1.0
@@ -764,6 +807,32 @@ class HilbertSpace:
             beginning_of_block += representative_dim_k
 
         return change_of_basis_mat
+    
+    def basis_transformation_kn(self, mat: np.ndarray):
+        change_of_basis_mat = np.zeros(mat.shape, dtype=complex)
+        beginning_of_block = 0
+        for n in range(self.num_sites * self.n_max):
+            basis_n, dim_n = gen_basis_nblock_from_full(self.basis, n)
+            for k in range(self.num_sites):
+                (
+                    representative_basis_kn,
+                    translation_periods_kn,
+                    representative_dim_kn
+                ) = gen_representative_basis_kblock(basis_n, self.num_sites, k)
+                for a in range(representative_dim_kn):
+                    representative_state_a = representative_basis_kn[a]
+                    translation_period_a = translation_periods_kn[a]
+                    for r in range(self.num_sites):
+                        normalization_a = np.sqrt(translation_period_a) / self.num_sites
+                        phase_arg = -2.0 * np.pi / self.num_sites * k * r 
+                        t_state_a = fock_translation(representative_state_a, r)
+                        change_of_basis_mat[
+                            self.findstate[tuple(t_state_a)],
+                            beginning_of_block + a
+                        ] += normalization_a * np.exp(1.0j * phase_arg)
+                beginning_of_block += representative_dim_kn
+
+        return change_of_basis_mat
 
     def basis_transformation_pk(self, mat: np.ndarray):
         change_of_basis_mat = np.zeros(mat.shape, dtype=float)
@@ -777,7 +846,6 @@ class HilbertSpace:
             ) = gen_representative_basis_pkblock(
                 self.representative_basis,
                 self.translation_periods,
-                self.representative_dim,
                 self.num_sites,
                 self.crystal_momentum,
                 p
@@ -800,6 +868,49 @@ class HilbertSpace:
                         beginning_of_block + a
                     ] += normalization_a * p
             beginning_of_block += representative_dim_pk
+
+        return change_of_basis_mat
+    
+    def basis_transformation_pkn(self, mat: np.ndarray):
+        change_of_basis_mat = np.zeros(mat.shape, dtype=float)
+        beginning_of_block = 0
+        for n in range(self.num_sites * self.n_max):
+            (
+                representative_basis_kn,
+                translation_periods_kn,
+                representative_dim_kn
+            ) = gen_representative_basis_knblock_from_kblock(self.representative_basis, self.translation_periods, n)
+            for p in (1, -1):
+                (
+                    representative_basis_pkn,
+                    translation_periods_pkn,
+                    reflection_translation_periods_pkn,
+                    representative_dim_pkn
+                ) = gen_representative_basis_pkblock(
+                    representative_basis_kn,
+                    translation_periods_kn,
+                    self.num_sites,
+                    self.crystal_momentum,
+                    p
+                )
+                for a in range(representative_dim_pkn):
+                    representative_state_a = representative_basis_pkn[a]
+                    reflection_translation_period_a = reflection_translation_periods_pkn[a]
+                    if reflection_translation_period_a == -1:
+                        normalization_a = np.sqrt(2.0) / 2.0
+                    else:
+                        normalization_a = 1.0
+                    change_of_basis_mat[
+                        self.representative_findstate[tuple(representative_state_a)],
+                        beginning_of_block + a
+                    ] += normalization_a
+                    if reflection_translation_period_a == -1:
+                        r_state_a, phase = fock_representative(fock_reflection(representative_state_a), self.num_sites)
+                        change_of_basis_mat[
+                            self.representative_findstate[tuple(r_state_a)],
+                            beginning_of_block + a
+                        ] += normalization_a * p
+                beginning_of_block += representative_dim_pkn
 
         return change_of_basis_mat
 
@@ -1659,8 +1770,8 @@ class DecomposedHilbertSpace(HilbertSpace):
             ) = gen_representative_basis_pkblock(
                 representative_basis,
                 translation_periods,
-                representative_dim,
-                num_sites, crystal_momentum,
+                num_sites,
+                crystal_momentum,
                 reflection_parity
             )
             self.representative_findstate = dict()
@@ -1693,8 +1804,8 @@ class DecomposedHilbertSpace(HilbertSpace):
             ) = gen_representative_basis_pkblock(
                 representative_basis,
                 translation_periods,
-                representative_dim,
-                num_sites, crystal_momentum,
+                num_sites,
+                crystal_momentum,
                 reflection_parity
             )
             self.representative_findstate = dict()
