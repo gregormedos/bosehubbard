@@ -413,8 +413,8 @@ def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int):
         basis = gen_basis_nblock(num_sites, n_tot, dim)
     elif num_sites > 1:
         n_min = n_tot - n_max
-        sub_dim_list = list()
-        basis_block_list = list()
+        sub_dim_list = []
+        basis_block_list = []
         basis_block_list_len = n_max + 1
         for n in range(n_min, n_tot + 1):
             sub_basis, sub_dim = gen_basis_nblock_nmax(num_sites - 1, n, n_max)
@@ -462,7 +462,7 @@ def gen_basis_nblock_from_full(super_basis: np.ndarray, n_tot: int):
     """
     # we only want the pointers to the Fock states that belong to a
     # subspace with a good quantum number n_tot
-    state_list = list()
+    state_list = []
     for state_a in super_basis:
         if np.sum(state_a) == n_tot:
             state_list.append(state_a)  # intentionally avoiding copying
@@ -498,8 +498,8 @@ def gen_representative_basis_kblock(super_basis: np.ndarray, num_sites: int, cry
     """
     # we only want the pointers to the Fock states that belong to a
     # subspace with a good quantum number crystal_momentum
-    representative_state_list = list()
-    translation_period_list = list()
+    representative_state_list = []
+    translation_period_list = []
     for state_a in super_basis:
         period = fock_checkstate(state_a, num_sites, crystal_momentum)
         if period >= 0:
@@ -512,6 +512,7 @@ def gen_representative_basis_kblock(super_basis: np.ndarray, num_sites: int, cry
     return representative_basis, translation_periods, representative_dim
 
 
+# TODO: Maybe remove?
 def gen_representative_basis_knblock_from_kblock(
         super_representative_basis: np.ndarray,
         super_translation_periods: np.ndarray,
@@ -543,8 +544,8 @@ def gen_representative_basis_knblock_from_kblock(
     """
     # we only want the pointers to the Fock states that belong to a
     # subspace with a good quantum number n_tot
-    representative_state_list = list()
-    translation_period_list = list()
+    representative_state_list = []
+    translation_period_list = []
     for state_a, translation_period_a in zip(super_representative_basis, super_translation_periods):
         if np.sum(state_a) == n_tot:
             representative_state_list.append(state_a)  # intentionally avoiding copying
@@ -596,9 +597,9 @@ def gen_representative_basis_pkblock(
     """
     # we only want the pointers to the Fock states that belong to a
     # subspace with a good quantum number reflection_parity
-    representative_state_list = list()
-    translation_period_list = list()
-    reflection_translation_period_list = list()
+    representative_state_list = []
+    translation_period_list = []
+    reflection_translation_period_list = []
     for representative_state_a, translation_period_a in zip(
         super_representative_basis,
         super_translation_periods
@@ -679,20 +680,20 @@ class HilbertSpace:
         if space == 'full':
             self.dim = dim_full(num_sites, n_max)
             self.basis = gen_basis_full(num_sites, n_max, self.dim)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
         
         elif space == 'N':
             self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             
         elif space == 'K':
             self.dim = dim_full(num_sites, n_max)
             self.basis = gen_basis_full(num_sites, n_max, self.dim)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             (
@@ -700,13 +701,13 @@ class HilbertSpace:
                 self.translation_periods,
                 self.representative_dim
             ) = gen_representative_basis_kblock(self.basis, num_sites, crystal_momentum)
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         elif space == 'KN':
             self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             (
@@ -714,14 +715,14 @@ class HilbertSpace:
                 self.translation_periods,
                 self.representative_dim
             ) = gen_representative_basis_kblock(self.basis, num_sites, crystal_momentum)
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         elif space == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             self.dim = dim_full(num_sites, n_max)
             self.basis = gen_basis_full(num_sites, n_max, self.dim)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             (
@@ -741,13 +742,13 @@ class HilbertSpace:
                 crystal_momentum,
                 reflection_parity
             )
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         elif space == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             (
@@ -767,7 +768,7 @@ class HilbertSpace:
                 crystal_momentum,
                 reflection_parity
             )
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
@@ -775,7 +776,7 @@ class HilbertSpace:
     def basis_transformation_n(self, mat: np.ndarray):
         change_of_basis_mat = np.zeros_like(mat)
         beginning_of_block = 0
-        for n in range(self.num_sites * self.n_max):
+        for n in range(self.num_sites * self.n_max + 1):
             basis_n, dim_n = gen_basis_nblock_from_full(self.basis, n)
             for a in range(dim_n):
                 state_a = basis_n[a]
@@ -811,7 +812,7 @@ class HilbertSpace:
     def basis_transformation_kn(self, mat: np.ndarray):
         change_of_basis_mat = np.zeros(mat.shape, dtype=complex)
         beginning_of_block = 0
-        for n in range(self.num_sites * self.n_max):
+        for n in range(self.num_sites * self.n_max + 1):
             basis_n, dim_n = gen_basis_nblock_from_full(self.basis, n)
             for k in range(self.num_sites):
                 (
@@ -871,10 +872,11 @@ class HilbertSpace:
 
         return change_of_basis_mat
     
+    # TODO: Maybe remove?
     def basis_transformation_pkn(self, mat: np.ndarray):
         change_of_basis_mat = np.zeros(mat.shape, dtype=float)
         beginning_of_block = 0
-        for n in range(self.num_sites * self.n_max):
+        for n in range(self.num_sites * self.n_max + 1):
             (
                 representative_basis_kn,
                 translation_periods_kn,
@@ -939,7 +941,7 @@ class HilbertSpace:
             t_state = fock_lower(state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     state_b = fock_raise(t_state, j)
@@ -984,7 +986,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -1023,7 +1025,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -1097,7 +1099,7 @@ class HilbertSpace:
             t_state = fock_lower(state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] > 0:
                     n_j = t_state[j]
                     state_b = fock_lower(t_state, j)
@@ -1121,7 +1123,7 @@ class HilbertSpace:
             t_state = fock_raise(state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     state_b = fock_raise(t_state, j)
@@ -1198,7 +1200,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] > 0:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_lower(t_state, j), self.num_sites)
@@ -1246,7 +1248,7 @@ class HilbertSpace:
             t_state = fock_raise(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -1347,7 +1349,7 @@ class HilbertSpace:
             t_state = fock_lower(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] > 0:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_lower(t_state, j), self.num_sites)
@@ -1451,7 +1453,7 @@ class HilbertSpace:
             t_state = fock_raise(representative_state_a, i)
             for d_j in d:
                 j = i + d_j
-                j = j - (j // self.num_sites) * self.num_sites  # PBC IF NEEDED
+                j = j % self.num_sites  # PBC IF NEEDED
                 if t_state[j] < self.n_max:
                     n_j = t_state[j]
                     representative_state_b, phase = fock_representative(fock_raise(t_state, j), self.num_sites)
@@ -1606,11 +1608,11 @@ class DecomposedHilbertSpace(HilbertSpace):
         if space == 'full':
             self.dim = dim_full(num_sites, n_max)
             self.basis = gen_basis_full(num_sites, n_max, self.dim)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             if sym in ('N', 'KN', 'PKN'):
-                self.subspaces = list()
+                self.subspaces = []
                 for n in range(num_sites * n_max + 1):
                     self.subspaces.append(
                         DecomposedHilbertSpace(
@@ -1625,7 +1627,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                         )
                     )
             elif sym in ('K', 'PK'):
-                self.subspaces = list()
+                self.subspaces = []
                 for k in range(num_sites):
                     self.subspaces.append(
                         DecomposedHilbertSpace(
@@ -1645,11 +1647,11 @@ class DecomposedHilbertSpace(HilbertSpace):
                 self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
             else:
                 self.basis, self.dim = gen_basis_nblock_from_full(super_basis, n_tot)
-            self.findstate = dict()
+            self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             if sym in ('KN', 'PKN'):
-                self.subspaces = list()
+                self.subspaces = []
                 for k in range(num_sites):
                     self.subspaces.append(
                         DecomposedHilbertSpace(
@@ -1669,7 +1671,7 @@ class DecomposedHilbertSpace(HilbertSpace):
             if super_basis is None:
                 self.dim = dim_full(num_sites, n_max)
                 self.basis = gen_basis_full(num_sites, n_max, self.dim)
-                self.findstate = dict()
+                self.findstate = {}
                 for a in range(self.dim):
                     self.findstate[tuple(self.basis[a])] = a
             else:
@@ -1681,11 +1683,11 @@ class DecomposedHilbertSpace(HilbertSpace):
                 self.translation_periods,
                 self.representative_dim
             ) = gen_representative_basis_kblock(self.basis, num_sites, crystal_momentum)
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
             if sym == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-                self.subspaces = list()
+                self.subspaces = []
                 for p in (1, -1):
                     self.subspaces.append(
                         DecomposedHilbertSpace(
@@ -1707,7 +1709,7 @@ class DecomposedHilbertSpace(HilbertSpace):
         elif space == 'KN':
             if super_basis is None:
                 self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
-                self.findstate = dict()
+                self.findstate = {}
                 for a in range(self.dim):
                     self.findstate[tuple(self.basis[a])] = a
             else:
@@ -1719,11 +1721,11 @@ class DecomposedHilbertSpace(HilbertSpace):
                 self.translation_periods,
                 self.representative_dim
             ) = gen_representative_basis_kblock(self.basis, num_sites, crystal_momentum)
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
             if sym == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-                self.subspaces = list()
+                self.subspaces = []
                 for p in (1, -1):
                     self.subspaces.append(
                         DecomposedHilbertSpace(
@@ -1747,7 +1749,7 @@ class DecomposedHilbertSpace(HilbertSpace):
             if super_basis is None and super_representative_basis is None:
                 self.dim = dim_full(num_sites, n_max)
                 self.basis = gen_basis_full(num_sites, n_max, self.dim)
-                self.findstate = dict()
+                self.findstate = {}
                 for a in range(self.dim):
                     self.findstate[tuple(self.basis[a])] = a
                 (
@@ -1774,14 +1776,14 @@ class DecomposedHilbertSpace(HilbertSpace):
                 crystal_momentum,
                 reflection_parity
             )
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         elif space == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             if super_basis is None and super_representative_basis is None:
                 self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
-                self.findstate = dict()
+                self.findstate = {}
                 for a in range(self.dim):
                     self.findstate[tuple(self.basis[a])] = a
                 (
@@ -1808,6 +1810,6 @@ class DecomposedHilbertSpace(HilbertSpace):
                 crystal_momentum,
                 reflection_parity
             )
-            self.representative_findstate = dict()
+            self.representative_findstate = {}
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
