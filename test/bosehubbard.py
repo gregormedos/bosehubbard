@@ -512,51 +512,6 @@ def gen_representative_basis_kblock(super_basis: np.ndarray, num_sites: int, cry
     return representative_basis, translation_periods, representative_dim
 
 
-# TODO: Maybe remove?
-def gen_representative_basis_knblock_from_kblock(
-        super_representative_basis: np.ndarray,
-        super_translation_periods: np.ndarray,
-        n_tot: int
-):
-    """
-    Generate the KN-block Hilbert representative space Fock basis, given the total
-    number of bosons `n_tot` and the K-block Hilbert space representative Fock basis
-    `super_basis`.
-
-    Parameters
-    ----------
-    super_representative_basis : np.ndarray
-        Hilbert space representative Fock basis
-    super_translation_periods : np.ndarray
-        Translation periods of the representative states
-    n_tot : int
-        Total number of bosons
-    
-    Returns
-    -------
-    representative_basis : np.ndarray
-        Hilbert space representative Fock basis
-    translation_periods : np.ndarray
-        Translation periods of the representative states
-    representative_dim : int
-        Hilbert space representative dimension
-
-    """
-    # we only want the pointers to the Fock states that belong to a
-    # subspace with a good quantum number n_tot
-    representative_state_list = []
-    translation_period_list = []
-    for state_a, translation_period_a in zip(super_representative_basis, super_translation_periods):
-        if np.sum(state_a) == n_tot:
-            representative_state_list.append(state_a)  # intentionally avoiding copying
-            translation_period_list.append(translation_period_a)
-    representative_basis = np.array(representative_state_list, dtype=int)
-    translation_periods = np.array(translation_period_list, dtype=int)
-    representative_dim = representative_basis.shape[0]
-
-    return representative_basis, translation_periods, representative_dim
-
-
 def gen_representative_basis_pkblock(
         super_representative_basis: np.ndarray,
         super_translation_periods: np.ndarray,
@@ -869,50 +824,6 @@ class HilbertSpace:
                         beginning_of_block + a
                     ] += normalization_a * p
             beginning_of_block += representative_dim_pk
-
-        return change_of_basis_mat
-    
-    # TODO: Maybe remove?
-    def basis_transformation_pkn(self, mat: np.ndarray):
-        change_of_basis_mat = np.zeros(mat.shape, dtype=float)
-        beginning_of_block = 0
-        for n in range(self.num_sites * self.n_max + 1):
-            (
-                representative_basis_kn,
-                translation_periods_kn,
-                representative_dim_kn
-            ) = gen_representative_basis_knblock_from_kblock(self.representative_basis, self.translation_periods, n)
-            for p in (1, -1):
-                (
-                    representative_basis_pkn,
-                    translation_periods_pkn,
-                    reflection_translation_periods_pkn,
-                    representative_dim_pkn
-                ) = gen_representative_basis_pkblock(
-                    representative_basis_kn,
-                    translation_periods_kn,
-                    self.num_sites,
-                    self.crystal_momentum,
-                    p
-                )
-                for a in range(representative_dim_pkn):
-                    representative_state_a = representative_basis_pkn[a]
-                    reflection_translation_period_a = reflection_translation_periods_pkn[a]
-                    if reflection_translation_period_a == -1:
-                        normalization_a = np.sqrt(2.0) / 2.0
-                    else:
-                        normalization_a = 1.0
-                    change_of_basis_mat[
-                        self.representative_findstate[tuple(representative_state_a)],
-                        beginning_of_block + a
-                    ] += normalization_a
-                    if reflection_translation_period_a == -1:
-                        r_state_a, phase = fock_representative(fock_reflection(representative_state_a), self.num_sites)
-                        change_of_basis_mat[
-                            self.representative_findstate[tuple(r_state_a)],
-                            beginning_of_block + a
-                        ] += normalization_a * p
-                beginning_of_block += representative_dim_pkn
 
         return change_of_basis_mat
 
