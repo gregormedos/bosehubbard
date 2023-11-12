@@ -25,8 +25,6 @@ def test_symmetries(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
 
     hs = bh.HilbertSpace(5, 2)
     h = HAMILTONIAN_DICT[num](hs)
@@ -64,8 +62,6 @@ def test_decomposition_n(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
     w = []
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_DICT[num](hss)
@@ -79,8 +75,6 @@ def test_decomposition_n(num: int):
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
     axis.set_yticks([])
-    axis.set_xticklabels([])
-    axis.set_yticklabels([])
 
     axis.hist(w, BINS)
 
@@ -93,8 +87,6 @@ def test_decomposition_k(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
     w = []
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_K_DICT[num](hss)
@@ -108,8 +100,6 @@ def test_decomposition_k(num: int):
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
     axis.set_yticks([])
-    axis.set_xticklabels([])
-    axis.set_yticklabels([])
 
     axis.hist(w, BINS)
 
@@ -122,8 +112,6 @@ def test_decomposition_kn(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
     w = []
     for i, hss in enumerate(hs.subspaces):
         for j, hsss in enumerate(hss.subspaces):
@@ -138,8 +126,6 @@ def test_decomposition_kn(num: int):
     fig, axis = plt.subplots(figsize=(5, 5))
     axis.set_xticks([])
     axis.set_yticks([])
-    axis.set_xticklabels([])
-    axis.set_yticklabels([])
 
     axis.hist(w, BINS)
 
@@ -151,8 +137,6 @@ def test_symmetries_k(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
 
     hs = bh.HilbertSpace(6, 2, 'K', crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
@@ -187,8 +171,6 @@ def test_symmetries_kn(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
 
     hs = bh.HilbertSpace(6, 2, 'KN', n_tot=3, crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
@@ -223,8 +205,6 @@ def test_decomposition_pk(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
     w = [[], []]
 
     hs = bh.DecomposedHilbertSpace(6, 2, 'K', 'PK', crystal_momentum=0)
@@ -241,10 +221,9 @@ def test_decomposition_pk(num: int):
     fig.tight_layout()
 
     fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
-    axis.set_xticks([])
-    axis.set_yticks([])
-    axis.set_xticklabels([])
-    axis.set_yticklabels([])
+    for axis in axes.flat:
+        axis.set_xticks([])
+        axis.set_yticks([])
 
     for i in range(2):
         w[i] = np.array(w[i])
@@ -259,8 +238,6 @@ def test_decomposition_pkn(num: int):
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
-        axis.set_xticklabels([])
-        axis.set_yticklabels([])
     w = [[], []]
 
     hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=3, crystal_momentum=0)
@@ -277,10 +254,9 @@ def test_decomposition_pkn(num: int):
     fig.tight_layout()
 
     fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
-    axis.set_xticks([])
-    axis.set_yticks([])
-    axis.set_xticklabels([])
-    axis.set_yticklabels([])
+    for axis in axes.flat:
+        axis.set_xticks([])
+        axis.set_yticks([])
 
     for i in range(2):
         w[i] = np.array(w[i])
@@ -307,8 +283,8 @@ def main():
     #test_decomposition_n(4)
     #test_decomposition_k(2)
     #test_decomposition_kn(2)
-    #test_symmetries_k(1)
-    #test_decomposition_pk(1)
+    test_symmetries_k(1)
+    test_decomposition_pk(1)
     test_symmetries_kn(1)
     test_decomposition_pkn(1)
     #test_symmetries_k(2)
