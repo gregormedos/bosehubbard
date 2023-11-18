@@ -30,27 +30,75 @@ def test_symmetries(num: int):
     h = HAMILTONIAN_DICT[num](hs)
     axes[0, 0].imshow(h, norm=CenteredNorm(), cmap=cmap)
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_spect.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_n(h)
     h = s.T @ h @ s
     axes[0, 1].imshow(h, norm=CenteredNorm(), cmap=cmap)
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_spect_n.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 1].hist(w, BINS)
     h = HAMILTONIAN_DICT[num](hs)
     s = hs.basis_transformation_k(h)
     h = s.conj().T @ h @ s
     axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_spect_k.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 2].hist(w, BINS)
     h = HAMILTONIAN_DICT[num](hs)
     s = hs.basis_transformation_kn(h)
     h = s.conj().T @ h @ s
     axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_spect_kn.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries.png')
+    fig.savefig('test/symmetries.png')    
 
 
 def test_decomposition_n(num: int):
@@ -71,16 +119,16 @@ def test_decomposition_n(num: int):
 
     spect = {}
     for sector, w_sector in w_sectors.items():
-        for w in w_sector:
-            if w not in spect:
-                spect[w] = [sector, 1]
+        for energy in w_sector:
+            if energy not in spect:
+                spect[energy] = [sector, 1]
             else:
-                spect[w][0] += sector
-                spect[w][1] += 1
-    spect = {w: spect[w] for w in sorted(spect.keys())}
+                spect[energy][0] += sector
+                spect[energy][1] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/decomposition_n_spect.txt', 'w') as file:
-        for w, (sector, degeneracy) in spect.items():
-            file.write(f'{w:.10f}[{degeneracy}]{sector}\n')
+        for energy, (sector, degeneracy) in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
 
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
@@ -113,16 +161,16 @@ def test_decomposition_k(num: int):
 
     spect = {}
     for sector, w_sector in w_sectors.items():
-        for w in w_sector:
-            if w not in spect:
-                spect[w] = [sector, 1]
+        for energy in w_sector:
+            if energy not in spect:
+                spect[energy] = [sector, 1]
             else:
-                spect[w][0] += sector
-                spect[w][1] += 1
-    spect = {w: spect[w] for w in sorted(spect.keys())}
+                spect[energy][0] += sector
+                spect[energy][1] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/decomposition_k_spect.txt', 'w') as file:
-        for w, (sector, degeneracy) in spect.items():
-            file.write(f'{w:.10f}[{degeneracy}]{sector}\n')
+        for energy, (sector, degeneracy) in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
 
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
@@ -156,16 +204,16 @@ def test_decomposition_kn(num: int):
 
     spect = {}
     for sector, w_sector in w_sectors.items():
-        for w in w_sector:
-            if w not in spect:
-                spect[w] = [sector, 1]
+        for energy in w_sector:
+            if energy not in spect:
+                spect[energy] = [sector, 1]
             else:
-                spect[w][0] += sector
-                spect[w][1] += 1
-    spect = {w: spect[w] for w in sorted(spect.keys())}
+                spect[energy][0] += sector
+                spect[energy][1] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/decomposition_kn_spect.txt', 'w') as file:
-        for w, (sector, degeneracy) in spect.items():
-            file.write(f'{w:.10f}[{degeneracy}]{sector}\n')
+        for energy, (sector, degeneracy) in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
 
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
@@ -189,65 +237,74 @@ def test_symmetries_k(num: int):
     hs = bh.HilbertSpace(6, 2, 'K', crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
     axes[0, 0].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_k_spect_k=zero.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.T @ h @ s
     axes[0, 1].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_k_spect_pk_k=zero.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(6, 2, 'K', crystal_momentum=3)
     h = HAMILTONIAN_K_DICT[num](hs)
     axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_k_spect_k=bragg.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.T @ h @ s
     axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_k_spect_pk_k=bragg.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+    
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
     fig.savefig('test/symmetries_k.png')
-
-
-def test_symmetries_kn(num: int):
-    fig, axes = plt.subplots(2, 4, figsize=(10, 5))
-    for axis in axes.flat:
-        axis.set_xticks([])
-        axis.set_yticks([])
-
-    hs = bh.HilbertSpace(6, 2, 'KN', n_tot=3, crystal_momentum=0)
-    h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 0].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
-    axes[1, 0].hist(w, BINS)
-    s = hs.basis_transformation_pk(h)
-    h = s.conj().T @ h @ s
-    axes[0, 1].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
-    axes[1, 1].hist(w, BINS)
-    hs = bh.HilbertSpace(6, 2, 'KN', n_tot=3, crystal_momentum=3)
-    h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
-    axes[1, 2].hist(w, BINS)
-    s = hs.basis_transformation_pk(h)
-    h = s.conj().T @ h @ s
-    axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
-    w = np.linalg.eigvalsh(h)
-    w = np.round(w, PRECISION)
-    axes[1, 3].hist(w, BINS)
-
-    fig.tight_layout()
-    fig.savefig('test/symmetries_kn.png')
 
 
 def test_decomposition_pk(num: int):
@@ -274,16 +331,16 @@ def test_decomposition_pk(num: int):
     for i, k in enumerate(('k=zero', 'k=bragg')):
         spect = {}
         for sector, w_sector in w_sectors_list[i].items():
-            for w in w_sector:
-                if w not in spect:
-                    spect[w] = [sector, 1]
+            for energy in w_sector:
+                if energy not in spect:
+                    spect[energy] = [sector, 1]
                 else:
-                    spect[w][0] += sector
-                    spect[w][1] += 1
-        spect = {w: spect[w] for w in sorted(spect.keys())}
+                    spect[energy][0] += sector
+                    spect[energy][1] += 1
+        spect = {energy: spect[energy] for energy in sorted(spect.keys())}
         with open(f'test/decomposition_pk_spect_{k}.txt', 'w') as file:
-            for w, (sector, degeneracy) in spect.items():
-                file.write(f'{w:.10f}[{degeneracy}]{sector}\n')
+            for energy, (sector, degeneracy) in spect.items():
+                file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
 
     fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
     for axis in axes.flat:
@@ -300,6 +357,85 @@ def test_decomposition_pk(num: int):
     fig.savefig('test/decompostion_pk_spect.png')
 
 
+def test_symmetries_kn(num: int):
+    fig, axes = plt.subplots(2, 4, figsize=(10, 5))
+    for axis in axes.flat:
+        axis.set_xticks([])
+        axis.set_yticks([])
+
+    hs = bh.HilbertSpace(6, 2, 'KN', n_tot=6, crystal_momentum=0)
+    h = HAMILTONIAN_K_DICT[num](hs)
+    axes[0, 0].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_kn_spect_k=zero.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+
+    axes[1, 0].hist(w, BINS)
+    s = hs.basis_transformation_pk(h)
+    h = s.conj().T @ h @ s
+    axes[0, 1].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_kn_spect_pk_k=zero.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+
+    axes[1, 1].hist(w, BINS)
+    hs = bh.HilbertSpace(6, 2, 'KN', n_tot=6, crystal_momentum=3)
+    h = HAMILTONIAN_K_DICT[num](hs)
+    axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_kn_spect_k=bragg.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+
+    axes[1, 2].hist(w, BINS)
+    s = hs.basis_transformation_pk(h)
+    h = s.conj().T @ h @ s
+    axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    w = np.round(np.linalg.eigvalsh(h), PRECISION)
+
+    spect = {}
+    for energy in w:
+        if energy not in spect:
+            spect[energy] = 1
+        else:
+            spect[energy] += 1
+    spect = {energy: spect[energy] for energy in sorted(spect.keys())}
+    with open('test/symmetries_kn_spect_pk_k=bragg.txt', 'w') as file:
+        for energy, degeneracy in spect.items():
+            file.write(f'{energy:.10f}[{degeneracy}]\n')
+
+    axes[1, 3].hist(w, BINS)
+
+    fig.tight_layout()
+    fig.savefig('test/symmetries_kn.png')
+
+
 def test_decomposition_pkn(num: int):
     fig, axes = plt.subplots(2, 2, figsize=(5, 5))
     for axis in axes.flat:
@@ -307,12 +443,12 @@ def test_decomposition_pkn(num: int):
         axis.set_yticks([])
 
     w_sectors_list = [{}, {}]
-    hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=3, crystal_momentum=0)
+    hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=6, crystal_momentum=0)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_K_DICT[num](hss)
         axes[0, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
-    hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=3, crystal_momentum=3)
+    hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=6, crystal_momentum=3)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_K_DICT[num](hss)
         axes[1, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
@@ -324,16 +460,16 @@ def test_decomposition_pkn(num: int):
     for i, k in enumerate(('k=zero', 'k=bragg')):
         spect = {}
         for sector, w_sector in w_sectors_list[i].items():
-            for w in w_sector:
-                if w not in spect:
-                    spect[w] = [sector, 1]
+            for energy in w_sector:
+                if energy not in spect:
+                    spect[energy] = [sector, 1]
                 else:
-                    spect[w][0] += sector
-                    spect[w][1] += 1
-        spect = {w: spect[w] for w in sorted(spect.keys())}
+                    spect[energy][0] += sector
+                    spect[energy][1] += 1
+        spect = {energy: spect[energy] for energy in sorted(spect.keys())}
         with open(f'test/decomposition_pkn_spect_{k}.txt', 'w') as file:
-            for w, (sector, degeneracy) in spect.items():
-                file.write(f'{w:.10f}[{degeneracy}]{sector}\n')
+            for energy, (sector, degeneracy) in spect.items():
+                file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
 
     fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
     for axis in axes.flat:
@@ -351,31 +487,14 @@ def test_decomposition_pkn(num: int):
 
 
 def main():
-    #test_symmetries(1)
-    #test_decomposition_n(1)
-    #test_decomposition_k(1)
-    #test_decomposition_kn(1)
-    #test_symmetries(2)
-    #test_decomposition_n(2)
-    #test_decomposition_k(1)
-    #test_decomposition_kn(1)
-    #test_symmetries(3)
-    #test_decomposition_n(3)
-    #test_decomposition_k(2)
-    #test_decomposition_kn(2)
-    #test_symmetries(4)
-    #test_decomposition_n(4)
-    #test_decomposition_k(2)
-    #test_decomposition_kn(2)
+    test_symmetries(1)
+    test_decomposition_n(1)
+    test_decomposition_k(1)
+    test_decomposition_kn(1)
     test_symmetries_k(1)
     test_decomposition_pk(1)
-    #test_symmetries_kn(1)
-    #test_decomposition_pkn(1)
-    #test_symmetries_k(2)
-    #test_decomposition_pk(2)
-    #test_symmetries_kn(2)
-    #test_decomposition_pkn(2)
-    plt.show()
+    test_symmetries_kn(1)
+    test_decomposition_pkn(1)
 
 
 if __name__ == '__main__':

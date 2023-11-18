@@ -9,15 +9,20 @@ def print_basis(hs: bh.HilbertSpace):
         print(f"Representative dim: {hs.representative_dim}")
 
 
-hs = bh.DecomposedHilbertSpace(5, 2)
-print_basis(hs)
-hs = bh.DecomposedHilbertSpace(5, 2, space='N', n_tot=3)
-print_basis(hs)
-hs = bh.DecomposedHilbertSpace(5, 2, space='K', crystal_momentum=0)
-print_basis(hs)
-hs = bh.DecomposedHilbertSpace(5, 2, space='KN', n_tot=3, crystal_momentum=0)
-print_basis(hs)
-hs = bh.DecomposedHilbertSpace(5, 2, space='PK', crystal_momentum=0, reflection_parity=1)
-print_basis(hs)
-hs = bh.DecomposedHilbertSpace(5, 2, space='PKN', n_tot=3, crystal_momentum=0, reflection_parity=1)
-print_basis(hs)
+def main():
+    hs = bh.DecomposedHilbertSpace(4, 2)
+    print_basis(hs)
+    hs = bh.DecomposedHilbertSpace(4, 2, space='N', n_tot=4)
+    print_basis(hs)
+    hs = bh.DecomposedHilbertSpace(4, 2, space='K', crystal_momentum=2)
+    print_basis(hs)
+    hs = bh.DecomposedHilbertSpace(4, 2, space='KN', n_tot=4, crystal_momentum=2)
+    print_basis(hs)
+    hs = bh.DecomposedHilbertSpace(4, 2, space='PK', crystal_momentum=2, reflection_parity=-1)
+    print_basis(hs)
+    hs = bh.DecomposedHilbertSpace(4, 2, space='PKN', n_tot=4, crystal_momentum=2, reflection_parity=-1)
+    print_basis(hs)
+
+
+if __name__ == '__main__':
+    main()
