@@ -1270,6 +1270,9 @@ class DecomposedHilbertSpace(HilbertSpace):
                 crystal_momentum,
                 reflection_parity
             )
+            self.representative_findstate = {}
+            for a in range(self.representative_dim):
+                self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         if space == 'full':
             if sym in ('N', 'KN', 'PKN'):

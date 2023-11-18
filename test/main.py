@@ -4,7 +4,9 @@ import exact_diagonalization
 
 
 def main():
-    pass
+    basis.main()
+    hamiltonian.main()
+    exact_diagonalization.main()
 
 
 if __name__ == '__main__':
