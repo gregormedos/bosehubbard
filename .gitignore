@@ -132,6 +132,9 @@ dmypy.json
 *.h5
 *.hdf5
 
+# pdf files
+*.pdf
+
 # png files
 *.png
 

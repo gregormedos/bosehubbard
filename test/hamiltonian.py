@@ -1,7 +1,6 @@
 import numpy as np
 import bosehubbard as bh
 import matplotlib.pyplot as plt
-from matplotlib.colors import CenteredNorm
 import matplotlib as mpl
 
 HAMILTONIAN_DICT = {
@@ -9,26 +8,31 @@ HAMILTONIAN_DICT = {
     2: bh.HilbertSpace.op_hamiltonian_tunnel_obc,
     3: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pbc,
     4: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_obc,
+    5: bh.HilbertSpace.op_hamiltonian_interaction,
 }
 HAMILTONIAN_K_DICT = {
     1: bh.HilbertSpace.op_hamiltonian_tunnel_k,
     2: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_k,
+    3: bh.HilbertSpace.op_hamiltonian_interaction_k,
+}
+HAMILTONIAN_PK_DICT = {
+    1: bh.HilbertSpace.op_hamiltonian_tunnel_pk,
+    2: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pk,
+    3: bh.HilbertSpace.op_hamiltonian_interaction_k,
 }
 PRECISION = 10
-BINS = 60
-
-cmap = mpl.colormaps['RdBu']
+BINS = 300
 
 
-def test_symmetries(num: int):
+def test_symmetries(num: int, num_sites: int, n_max: int):
     fig, axes = plt.subplots(2, 4, figsize=(10, 5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
 
-    hs = bh.HilbertSpace(5, 2)
+    hs = bh.HilbertSpace(num_sites, n_max)
     h = HAMILTONIAN_DICT[num](hs)
-    axes[0, 0].imshow(h, norm=CenteredNorm(), cmap=cmap)
+    axes[0, 0].imshow(h)
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -45,7 +49,7 @@ def test_symmetries(num: int):
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_n(h)
     h = s.T @ h @ s
-    axes[0, 1].imshow(h, norm=CenteredNorm(), cmap=cmap)
+    axes[0, 1].imshow(h)
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -63,7 +67,7 @@ def test_symmetries(num: int):
     h = HAMILTONIAN_DICT[num](hs)
     s = hs.basis_transformation_k(h)
     h = s.conj().T @ h @ s
-    axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -81,7 +85,7 @@ def test_symmetries(num: int):
     h = HAMILTONIAN_DICT[num](hs)
     s = hs.basis_transformation_kn(h)
     h = s.conj().T @ h @ s
-    axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -98,11 +102,11 @@ def test_symmetries(num: int):
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries.png')    
+    fig.savefig('test/symmetries.pdf')    
 
 
-def test_decomposition_n(num: int):
-    hs = bh.DecomposedHilbertSpace(5, 2, sym='N')
+def test_decomposition_n(num: int, num_sites: int, n_max: int):
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, sym='N')
     fig, axes = plt.subplots(1, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, 2.5))
     for axis in axes.flat:
         axis.set_xticks([])
@@ -111,11 +115,11 @@ def test_decomposition_n(num: int):
     w_sectors = {}
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_DICT[num](hss)
-        axes[i].imshow(h, norm=CenteredNorm(), cmap=cmap)
+        axes[i].imshow(h)
         w_sectors[f'({hss.n_tot})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decomposition_n.png')
+    fig.savefig('test/decomposition_n.pdf')
 
     spect = {}
     for sector, w_sector in w_sectors.items():
@@ -140,11 +144,11 @@ def test_decomposition_n(num: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decomposition_n_spect.png')
+    fig.savefig('test/decomposition_n_spect.pdf')
 
 
-def test_decomposition_k(num: int):
-    hs = bh.DecomposedHilbertSpace(5, 2, sym='K')
+def test_decomposition_k(num: int, num_sites: int, n_max: int):
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, sym='K')
     fig, axes = plt.subplots(1, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, 2.5))
     for axis in axes.flat:
         axis.set_xticks([])
@@ -153,11 +157,11 @@ def test_decomposition_k(num: int):
     w_sectors = {}
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_K_DICT[num](hss)
-        axes[i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+        axes[i].imshow(np.abs(h))
         w_sectors[f'({hss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_k.png')
+    fig.savefig('test/decompostion_k.pdf')
 
     spect = {}
     for sector, w_sector in w_sectors.items():
@@ -182,11 +186,11 @@ def test_decomposition_k(num: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_k_spect.png')
+    fig.savefig('test/decompostion_k_spect.pdf')
 
 
-def test_decomposition_kn(num: int):
-    hs = bh.DecomposedHilbertSpace(5, 2, sym='KN')
+def test_decomposition_kn(num: int, num_sites: int, n_max: int):
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, sym='KN')
     fig, axes = plt.subplots(5, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, 5 * 2.5))
     for axis in axes.flat:
         axis.set_xticks([])
@@ -196,11 +200,11 @@ def test_decomposition_kn(num: int):
     for i, hss in enumerate(hs.subspaces):
         for j, hsss in enumerate(hss.subspaces):
             h = HAMILTONIAN_K_DICT[num](hsss)
-            axes[j, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+            axes[j, i].imshow(np.abs(h))
             w_sectors[f'({hsss.n_tot}|{hsss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompositon_kn.png')
+    fig.savefig('test/decompositon_kn.pdf')
 
     spect = {}
     for sector, w_sector in w_sectors.items():
@@ -225,18 +229,18 @@ def test_decomposition_kn(num: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompositon_kn_spect.png')
+    fig.savefig('test/decompositon_kn_spect.pdf')
 
 
-def test_symmetries_k(num: int):
+def test_symmetries_k(num: int, num_sites: int, n_max: int):
     fig, axes = plt.subplots(2, 4, figsize=(10, 5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
 
-    hs = bh.HilbertSpace(6, 2, 'K', crystal_momentum=0)
+    hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 0].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 0].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -253,7 +257,7 @@ def test_symmetries_k(num: int):
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.T @ h @ s
-    axes[0, 1].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 1].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -268,9 +272,9 @@ def test_symmetries_k(num: int):
             file.write(f'{energy:.10f}[{degeneracy}]\n')
     
     axes[1, 1].hist(w, BINS)
-    hs = bh.HilbertSpace(6, 2, 'K', crystal_momentum=3)
+    hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 2].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -287,7 +291,7 @@ def test_symmetries_k(num: int):
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.T @ h @ s
-    axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 3].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -304,29 +308,29 @@ def test_symmetries_k(num: int):
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries_k.png')
+    fig.savefig('test/symmetries_k.pdf')
 
 
-def test_decomposition_pk(num: int):
+def test_decomposition_pk(num: int, num_sites: int, n_max: int):
     fig, axes = plt.subplots(2, 2, figsize=(5, 5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
 
     w_sectors_list = [{}, {}]
-    hs = bh.DecomposedHilbertSpace(6, 2, 'K', 'PK', crystal_momentum=0)
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='K', sym='PK', crystal_momentum=0)
     for i, hss in enumerate(hs.subspaces):
-        h = HAMILTONIAN_K_DICT[num](hss)
-        axes[0, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+        h = HAMILTONIAN_PK_DICT[num](hss)
+        axes[0, i].imshow(h)
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
-    hs = bh.DecomposedHilbertSpace(6, 2, 'K', 'PK', crystal_momentum=3)
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='K', sym='PK', crystal_momentum=num_sites//2)
     for i, hss in enumerate(hs.subspaces):
-        h = HAMILTONIAN_K_DICT[num](hss)
-        axes[1, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+        h = HAMILTONIAN_PK_DICT[num](hss)
+        axes[1, i].imshow(h)
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pk.png')
+    fig.savefig('test/decompostion_pk.pdf')
 
     for i, k in enumerate(('k=zero', 'k=bragg')):
         spect = {}
@@ -354,18 +358,18 @@ def test_decomposition_pk(num: int):
         axes[i].hist(w[i], BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pk_spect.png')
+    fig.savefig('test/decompostion_pk_spect.pdf')
 
 
-def test_symmetries_kn(num: int):
+def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
     fig, axes = plt.subplots(2, 4, figsize=(10, 5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
 
-    hs = bh.HilbertSpace(6, 2, 'KN', n_tot=6, crystal_momentum=0)
+    hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 0].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 0].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -382,7 +386,7 @@ def test_symmetries_kn(num: int):
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.conj().T @ h @ s
-    axes[0, 1].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 1].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -397,9 +401,9 @@ def test_symmetries_kn(num: int):
             file.write(f'{energy:.10f}[{degeneracy}]\n')
 
     axes[1, 1].hist(w, BINS)
-    hs = bh.HilbertSpace(6, 2, 'KN', n_tot=6, crystal_momentum=3)
+    hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 2].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 2].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -416,7 +420,7 @@ def test_symmetries_kn(num: int):
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.conj().T @ h @ s
-    axes[0, 3].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+    axes[0, 3].imshow(np.real(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -433,29 +437,29 @@ def test_symmetries_kn(num: int):
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries_kn.png')
+    fig.savefig('test/symmetries_kn.pdf')
 
 
-def test_decomposition_pkn(num: int):
+def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
     fig, axes = plt.subplots(2, 2, figsize=(5, 5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
 
     w_sectors_list = [{}, {}]
-    hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=6, crystal_momentum=0)
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='KN', sym='PKN', n_tot=n_tot, crystal_momentum=0)
     for i, hss in enumerate(hs.subspaces):
-        h = HAMILTONIAN_K_DICT[num](hss)
-        axes[0, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+        h = HAMILTONIAN_PK_DICT[num](hss)
+        axes[0, i].imshow(h)
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
-    hs = bh.DecomposedHilbertSpace(6, 2, 'KN', 'PKN', n_tot=6, crystal_momentum=3)
+    hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='KN', sym='PKN', n_tot=n_tot, crystal_momentum=num_sites//2)
     for i, hss in enumerate(hs.subspaces):
-        h = HAMILTONIAN_K_DICT[num](hss)
-        axes[1, i].imshow(np.abs(h), norm=CenteredNorm(), cmap=cmap)
+        h = HAMILTONIAN_PK_DICT[num](hss)
+        axes[1, i].imshow(h)
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pkn.png')
+    fig.savefig('test/decompostion_pkn.pdf')
 
     for i, k in enumerate(('k=zero', 'k=bragg')):
         spect = {}
@@ -483,18 +487,16 @@ def test_decomposition_pkn(num: int):
         axes[i].hist(w[i], BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pkn_spect.png')
+    fig.savefig('test/decompostion_pkn_spect.pdf')
 
 
 def main():
-    test_symmetries(1)
-    test_decomposition_n(1)
-    test_decomposition_k(1)
-    test_decomposition_kn(1)
-    test_symmetries_k(1)
-    test_decomposition_pk(1)
-    test_symmetries_kn(1)
-    test_decomposition_pkn(1)
+    #test_symmetries_k(1, 4, 2)
+    #test_decomposition_pk(1, 4, 2)
+    #test_symmetries_kn(1, 6, 2, 6)
+    #test_decomposition_pkn(1, 6, 2, 6)
+    test_symmetries_k(2, 4, 2)
+    test_decomposition_pk(2, 4, 2)
 
 
 if __name__ == '__main__':

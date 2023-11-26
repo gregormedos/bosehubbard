@@ -138,11 +138,11 @@ def get_eigen_states(group: h5py.Group, eigen_states: np.ndarray, findstate: dic
 
 def plot_dos(file_name: str, eigen_energies: np.ndarray):
     plt.figure(dpi=300)
-    plt.hist(np.round(eigen_energies, PRECISION), 60)
+    plt.hist(np.round(eigen_energies, PRECISION), 300)
     plt.xlabel(r'$E$')
     plt.ylabel(r'$DOS$')
     plt.tight_layout()
-    plt.savefig(f'test/{file_name}_dos.png')
+    plt.savefig(f'test/{file_name}_dos.pdf')
     plt.close()
 
 
@@ -173,9 +173,9 @@ def run(
         file_name: str,
         tunneling_rate: float = 1.0,
         repulsion_strength: float = 1.0,
-        particle_transfer_rate: float = 0.0,
-        pair_production_rate: float = 0.0,
-        num_sites: int = 4,
+        particle_transfer_rate: float = 1.0,
+        pair_production_rate: float = 1.0,
+        num_sites: int = 8,
         n_max: int = 2,
         space: str = 'full',
         sym: str = None,
@@ -209,10 +209,12 @@ def run(
         eigen_states = eigen_states[:, eigen_energies.argsort()]
         eigen_energies.sort()
         plot_dos(file_name, eigen_energies)
+        """
         if space in ('K', 'KN', 'PK', 'PKN'):
             plot_states(file_name, dim, representative_dim, eigen_energies, eigen_states)
         else:
             plot_states(file_name, dim, dim, eigen_energies, eigen_states)
+        """
 
 
 def main():
@@ -222,15 +224,15 @@ def main():
     run('data4', sym='KN')
     run('data5', sym='PK')
     run('data6', sym='PKN')
-    run('data7', space='N', n_tot=4)
-    run('data8', space='N', sym='KN', n_tot=4)
-    run('data9', space='N', sym='PKN', n_tot=4)
+    run('data7', space='N', n_tot=8)
+    run('data8', space='N', sym='KN', n_tot=8)
+    run('data9', space='N', sym='PKN', n_tot=8)
     run('data10', space='K', crystal_momentum=0)
-    run('data11', space='K', sym='PK', crystal_momentum=2)
-    run('data12', space='KN', n_tot=5, crystal_momentum=2)
-    run('data13', space='KN', sym='PKN', n_tot=5, crystal_momentum=2)
-    run('data14', space='PK', crystal_momentum=2, reflection_parity=-1)
-    run('data15', space='PKN', sym='PKN', n_tot=5, crystal_momentum=2, reflection_parity=-1)
+    run('data11', space='K', sym='PK', crystal_momentum=0)
+    run('data12', space='KN', n_tot=8, crystal_momentum=0)
+    run('data13', space='KN', sym='PKN', n_tot=8, crystal_momentum=0)
+    run('data14', space='PK', crystal_momentum=0, reflection_parity=1)
+    run('data15', space='PKN', sym='PKN', n_tot=8, crystal_momentum=0, reflection_parity=1)
 
 
 if __name__ == '__main__':
