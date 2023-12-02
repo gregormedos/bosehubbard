@@ -1,13 +1,10 @@
 import numpy as np
 import bosehubbard as bh
 import matplotlib.pyplot as plt
-import cmasher as cmr
 import h5py
 
 plt.rcParams.update({'text.usetex': True,
                      'font.size': 18})
-
-PRECISION = 10
 
 
 def exact_diagonalization(
@@ -83,7 +80,7 @@ def get_eigen_energies(group: h5py.Group, eigen_energies: np.ndarray, counter: l
             get_eigen_energies(group[f'subspaces/{subspace_name}'], eigen_energies, counter)
     else:
         sub_space = group['param/space'][()].decode()
-        if sub_space in ('K', 'KN', 'PK', 'PKN'):
+        if 'K' in sub_space:
             sub_dim = group['representative_dim'][()]
         else:
             sub_dim = group['dim'][()]
@@ -93,95 +90,62 @@ def get_eigen_energies(group: h5py.Group, eigen_energies: np.ndarray, counter: l
         counter[0] += sub_dim
 
 
-def get_eigen_states(group: h5py.Group, eigen_states: np.ndarray, findstate: dict, counter: list):
-    if 'subspaces' in group:
-        for subspace_name in group['subspaces']:
-            get_eigen_states(group[f'subspaces/{subspace_name}'], eigen_states, findstate, counter)
+def plot_dos(file_name: str, eigen_energies: np.ndarray, reference_eigen_energies: np.ndarray = None):
+    if reference_eigen_energies is None:
+        plt.figure(dpi=300)
+        plt.hist(eigen_energies, 50, color='b')
+        plt.xlabel('$E$')
+        plt.ylabel('DOS($E$)')
+        plt.tight_layout()
+        plt.savefig(f'test/{file_name}_dos.pdf')
+        plt.close()
     else:
-        sub_space = group['param/space'][()].decode()
-        if sub_space in ('K', 'KN', 'PK', 'PKN'):
-            sub_dim = group['representative_dim'][()]
-            sub_basis = group['representative_basis'][()]
-        else:
-            sub_dim = group['dim'][()]
-            sub_basis = group['basis'][()]
-        sub_eigen_states = group['spectrum/eigen_states'][()]
-        j = counter[0]
-        for a in range(sub_dim):
-            sub_state_a = sub_basis[a]
-            sub_values_a = sub_eigen_states[a]
-            if sub_space in ('K', 'KN'):
-                num_sites = group['param/num_sites'][()]
-                sub_crystal_momentum = group['param/crystal_momentum'][()]
-                for r in range(num_sites):
-                    phase_arg = -2.0 * np.pi / num_sites * sub_crystal_momentum * r
-                    t_sub_state_a = bh.fock_translation(sub_state_a, r)
-                    eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
-                            sub_values_a * np.exp(1.0j * phase_arg))
-            elif sub_space in ('PK', 'PKN'):
-                num_sites = group['param/num_sites'][()]
-                sub_crystal_momentum = group['param/crystal_momentum'][()]
-                sub_reflection_parity = group['param/reflection_parity'][()]
-                for r in range(num_sites):
-                    phase_arg = -2.0 * np.pi / num_sites * sub_crystal_momentum * r
-                    t_sub_state_a = bh.fock_translation(sub_state_a, r)
-                    eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
-                            sub_values_a * np.exp(1.0j * phase_arg))
-                    t_sub_state_a = bh.fock_reflection(sub_state_a)
-                    t_sub_state_a = bh.fock_translation(t_sub_state_a, r)
-                    eigen_states[findstate[tuple(t_sub_state_a)], j: j + sub_dim] += (
-                            sub_values_a * sub_reflection_parity * np.exp(1.0j * phase_arg))
-            else:
-                eigen_states[findstate[tuple(sub_state_a)], j: j + sub_dim] += sub_values_a
-        counter[0] += sub_dim
+        fig, ax = plt.subplots(dpi=300)
+        ax.hist(reference_eigen_energies, 50, color='b', alpha=0.5)
+        ax.set_xlabel('$E$')
+        ax.set_ylabel('ref DOS($E$)', color='b')
+        ax2 = ax.twinx()
+        ax2.hist(eigen_energies, 50, color='r', alpha=0.5)
+        ax2.set_ylabel('DOS($E$)', color='r')
+        fig.tight_layout()
+        fig.savefig(f'test/{file_name}_dos.pdf')
+        plt.close(fig)
 
 
-def plot_dos(file_name: str, eigen_energies: np.ndarray):
-    plt.figure(dpi=300)
-    plt.hist(np.round(eigen_energies, PRECISION), 300)
-    plt.xlabel(r'$E$')
-    plt.ylabel(r'$DOS$')
-    plt.tight_layout()
-    plt.savefig(f'test/{file_name}_dos.pdf')
-    plt.close()
-
-
-def plot_states(file_name: str, dim_x: int, dim_y: int, eigen_energies: np.ndarray, eigen_states: np.ndarray):
-    x = np.arange(1, dim_x + 1, dtype=int)
-    colors = cmr.take_cmap_colors('viridis', dim_y, cmap_range=(0.14, 0.86))
-    plt.figure(dpi=300)
-    for i, color in enumerate(colors):
-        plt.fill_between(x, np.real(eigen_states[:, i]) + eigen_energies[i], eigen_energies[i], color=color, alpha=0.5)
-        plt.plot(x, np.real(eigen_states[:, i]) + eigen_energies[i], color=color, alpha=0.75)
-    plt.xlabel(r'$\underline{n}$')
-    plt.ylabel(r'$Re(\psi)$')
-    plt.tight_layout()
-    plt.savefig(f'test/{file_name}_states_real.png')
-    plt.close()
-    plt.figure(dpi=300)
-    for i, color in enumerate(colors):
-        plt.fill_between(x, np.imag(eigen_states[:, i]) + eigen_energies[i], eigen_energies[i], color=color, alpha=0.5)
-        plt.plot(x, np.imag(eigen_states[:, i]) + eigen_energies[i], color=color, alpha=0.75)
-    plt.xlabel(r'$\underline{n}$')
-    plt.ylabel(r'$Im(\psi)$')
-    plt.tight_layout()
-    plt.savefig(f'test/{file_name}_states_imag.png')
-    plt.close()
+def plot_eigen_energies(file_name: str, eigen_energies: np.ndarray, reference_eigen_energies: np.ndarray = None):
+    if reference_eigen_energies is None:
+        plt.figure(dpi=300)
+        plt.plot(eigen_energies, color='b')
+        plt.xlabel('$n$')
+        plt.ylabel('$E_n$')
+        plt.tight_layout()
+        plt.savefig(f'test/{file_name}_energies.pdf')
+        plt.close()
+    else:
+        plt.figure(dpi=300)
+        plt.plot(np.abs(eigen_energies - reference_eigen_energies), color='r')
+        plt.xlabel('$n$')
+        plt.ylabel(r'$\Delta E_n$')
+        plt.yscale('log')
+        plt.tight_layout()
+        plt.savefig(f'test/{file_name}_energies.pdf')
+        plt.close()
 
 
 def run(
         file_name: str,
         tunneling_rate: float = 1.0,
         repulsion_strength: float = 1.0,
-        particle_transfer_rate: float = 1.0,
-        pair_production_rate: float = 1.0,
+        particle_transfer_rate: float = 0.0,
+        pair_production_rate: float = 0.0,
         num_sites: int = 8,
         n_max: int = 2,
         space: str = 'full',
         sym: str = None,
         n_tot: int = None,
         crystal_momentum: int = None,
-        reflection_parity: int = None
+        reflection_parity: int = None,
+        reference_eigen_energies: np.ndarray = None
 ):
     with h5py.File(f'test/{file_name}.h5', 'w') as file:
         group = file.create_group('data')
@@ -194,43 +158,34 @@ def run(
         findstate = dict()
         for a in range(dim):
             findstate[tuple(basis[a])] = a
-        if space in ('K', 'KN', 'PK', 'PKN'):
+        if 'K' in space:
             representative_dim = group['representative_dim'][()]
             eigen_energies = np.empty(representative_dim, dtype=float)
-            eigen_states = np.zeros((dim, representative_dim), dtype=complex)
         else:
             eigen_energies = np.empty(dim, dtype=float)
-            eigen_states = np.zeros((dim, dim), dtype=complex)
         counter = [0]
         get_eigen_energies(group, eigen_energies, counter)
-        counter = [0]
-        get_eigen_states(group, eigen_states, findstate, counter)
-        eigen_states /= np.linalg.norm(eigen_states, axis=0)
-        eigen_states = eigen_states[:, eigen_energies.argsort()]
         eigen_energies.sort()
-        plot_dos(file_name, eigen_energies)
-        """
-        if space in ('K', 'KN', 'PK', 'PKN'):
-            plot_states(file_name, dim, representative_dim, eigen_energies, eigen_states)
-        else:
-            plot_states(file_name, dim, dim, eigen_energies, eigen_states)
-        """
+        plot_dos(file_name, eigen_energies, reference_eigen_energies)
+        plot_eigen_energies(file_name, eigen_energies, reference_eigen_energies)
+
+        return eigen_energies
 
 
 def main():
-    run('data1')
-    run('data2', sym='N')
-    run('data3', sym='K')
-    run('data4', sym='KN')
-    run('data5', sym='PK')
-    run('data6', sym='PKN')
-    run('data7', space='N', n_tot=8)
-    run('data8', space='N', sym='KN', n_tot=8)
-    run('data9', space='N', sym='PKN', n_tot=8)
-    run('data10', space='K', crystal_momentum=0)
-    run('data11', space='K', sym='PK', crystal_momentum=0)
-    run('data12', space='KN', n_tot=8, crystal_momentum=0)
-    run('data13', space='KN', sym='PKN', n_tot=8, crystal_momentum=0)
+    reference_eigen_energies = run('data1')
+    run('data2', sym='N', reference_eigen_energies=reference_eigen_energies)
+    run('data3', sym='K', reference_eigen_energies=reference_eigen_energies)
+    run('data4', sym='KN', reference_eigen_energies=reference_eigen_energies)
+    run('data5', sym='PK', reference_eigen_energies=reference_eigen_energies)
+    run('data6', sym='PKN', reference_eigen_energies=reference_eigen_energies)
+    reference_eigen_energies = run('data7', space='N', n_tot=8)
+    run('data8', space='N', sym='KN', n_tot=8, reference_eigen_energies=reference_eigen_energies)
+    run('data9', space='N', sym='PKN', n_tot=8, reference_eigen_energies=reference_eigen_energies)
+    reference_eigen_energies = run('data10', space='K', crystal_momentum=0)
+    run('data11', space='K', sym='PK', crystal_momentum=0, reference_eigen_energies=reference_eigen_energies)
+    reference_eigen_energies = run('data12', space='KN', n_tot=8, crystal_momentum=0)
+    run('data13', space='KN', sym='PKN', n_tot=8, crystal_momentum=0, reference_eigen_energies=reference_eigen_energies)
     run('data14', space='PK', crystal_momentum=0, reflection_parity=1)
     run('data15', space='PKN', sym='PKN', n_tot=8, crystal_momentum=0, reflection_parity=1)
 

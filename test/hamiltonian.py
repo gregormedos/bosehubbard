@@ -20,8 +20,8 @@ HAMILTONIAN_PK_DICT = {
     2: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pk,
     3: bh.HilbertSpace.op_hamiltonian_interaction_k,
 }
-PRECISION = 10
-BINS = 300
+PRECISION = 14
+BINS = 50
 
 
 def test_symmetries(num: int, num_sites: int, n_max: int):
@@ -44,7 +44,7 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_spect.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_n(h)
@@ -61,7 +61,7 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_spect_n.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 1].hist(w, BINS)
     h = HAMILTONIAN_DICT[num](hs)
@@ -79,7 +79,7 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_spect_k.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 2].hist(w, BINS)
     h = HAMILTONIAN_DICT[num](hs)
@@ -97,12 +97,13 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_spect_kn.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries.pdf')    
+    fig.savefig('test/symmetries.pdf')
+    plt.close(fig)
 
 
 def test_decomposition_n(num: int, num_sites: int, n_max: int):
@@ -120,6 +121,7 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decomposition_n.pdf')
+    plt.close(fig)
 
     spect = {}
     for sector, w_sector in w_sectors.items():
@@ -132,7 +134,7 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/decomposition_n_spect.txt', 'w') as file:
         for energy, (sector, degeneracy) in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
+            file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
@@ -145,6 +147,7 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decomposition_n_spect.pdf')
+    plt.close(fig)
 
 
 def test_decomposition_k(num: int, num_sites: int, n_max: int):
@@ -162,6 +165,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decompostion_k.pdf')
+    plt.close(fig)
 
     spect = {}
     for sector, w_sector in w_sectors.items():
@@ -174,7 +178,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/decomposition_k_spect.txt', 'w') as file:
         for energy, (sector, degeneracy) in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
+            file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
@@ -187,6 +191,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decompostion_k_spect.pdf')
+    plt.close(fig)
 
 
 def test_decomposition_kn(num: int, num_sites: int, n_max: int):
@@ -205,6 +210,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decompositon_kn.pdf')
+    plt.close(fig)
 
     spect = {}
     for sector, w_sector in w_sectors.items():
@@ -217,7 +223,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/decomposition_kn_spect.txt', 'w') as file:
         for energy, (sector, degeneracy) in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
+            file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
     fig, axis = plt.subplots(figsize=(2.5, 2.5))
     axis.set_xticks([])
@@ -230,6 +236,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decompositon_kn_spect.pdf')
+    plt.close(fig)
 
 
 def test_symmetries_k(num: int, num_sites: int, n_max: int):
@@ -252,7 +259,7 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_k_spect_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
@@ -269,7 +276,7 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_k_spect_pk_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=num_sites//2)
@@ -286,7 +293,7 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_k_spect_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
@@ -303,12 +310,13 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_k_spect_pk_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
     fig.savefig('test/symmetries_k.pdf')
+    plt.close(fig)
 
 
 def test_decomposition_pk(num: int, num_sites: int, n_max: int):
@@ -331,6 +339,7 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decompostion_pk.pdf')
+    plt.close(fig)
 
     for i, k in enumerate(('k=zero', 'k=bragg')):
         spect = {}
@@ -344,7 +353,7 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
         spect = {energy: spect[energy] for energy in sorted(spect.keys())}
         with open(f'test/decomposition_pk_spect_{k}.txt', 'w') as file:
             for energy, (sector, degeneracy) in spect.items():
-                file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
+                file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
     fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
     for axis in axes.flat:
@@ -359,6 +368,7 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
 
     fig.tight_layout()
     fig.savefig('test/decompostion_pk_spect.pdf')
+    plt.close(fig)
 
 
 def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
@@ -381,7 +391,7 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_kn_spect_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
@@ -398,7 +408,7 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_kn_spect_pk_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=num_sites//2)
@@ -415,7 +425,7 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_kn_spect_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
@@ -432,12 +442,13 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
     with open('test/symmetries_kn_spect_pk_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
-            file.write(f'{energy:.10f}[{degeneracy}]\n')
+            file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
     fig.savefig('test/symmetries_kn.pdf')
+    plt.close(fig)
 
 
 def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
@@ -473,7 +484,7 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
         spect = {energy: spect[energy] for energy in sorted(spect.keys())}
         with open(f'test/decomposition_pkn_spect_{k}.txt', 'w') as file:
             for energy, (sector, degeneracy) in spect.items():
-                file.write(f'{energy:.10f}[{degeneracy}]{sector}\n')
+                file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
     fig, axes = plt.subplots(1, 2, figsize=(5, 2.5))
     for axis in axes.flat:
@@ -488,15 +499,18 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
 
     fig.tight_layout()
     fig.savefig('test/decompostion_pkn_spect.pdf')
+    plt.close(fig)
 
 
 def main():
-    #test_symmetries_k(1, 4, 2)
-    #test_decomposition_pk(1, 4, 2)
-    #test_symmetries_kn(1, 6, 2, 6)
-    #test_decomposition_pkn(1, 6, 2, 6)
-    test_symmetries_k(2, 4, 2)
-    test_decomposition_pk(2, 4, 2)
+    test_symmetries(1, 4, 2)
+    test_decomposition_n(1, 4, 2)
+    test_decomposition_k(1, 4, 2)
+    test_decomposition_kn(1, 4, 2)
+    test_symmetries_k(1, 4, 2)
+    test_decomposition_pk(1, 4, 2)
+    test_symmetries_kn(1, 6, 2, 6)
+    test_decomposition_pkn(1, 6, 2, 6)
 
 
 if __name__ == '__main__':

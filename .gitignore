@@ -140,6 +140,3 @@ dmypy.json
 
 # txt files
 *.txt
-
-# test file
-test/main.py
