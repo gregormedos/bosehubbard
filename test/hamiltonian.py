@@ -1,24 +1,25 @@
 import numpy as np
 import bosehubbard as bh
 import matplotlib.pyplot as plt
-import matplotlib as mpl
+
+np.set_printoptions(linewidth=200)
 
 HAMILTONIAN_DICT = {
     1: bh.HilbertSpace.op_hamiltonian_tunnel_pbc,
     2: bh.HilbertSpace.op_hamiltonian_tunnel_obc,
     3: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pbc,
     4: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_obc,
-    5: bh.HilbertSpace.op_hamiltonian_interaction,
+    5: bh.HilbertSpace.op_hamiltonian_annihilate_create
 }
 HAMILTONIAN_K_DICT = {
     1: bh.HilbertSpace.op_hamiltonian_tunnel_k,
     2: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_k,
-    3: bh.HilbertSpace.op_hamiltonian_interaction_k,
+    3: bh.HilbertSpace.op_hamiltonian_annihilate_create_k
 }
 HAMILTONIAN_PK_DICT = {
     1: bh.HilbertSpace.op_hamiltonian_tunnel_pk,
     2: bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pk,
-    3: bh.HilbertSpace.op_hamiltonian_interaction_k,
+    3: bh.HilbertSpace.op_hamiltonian_annihilate_create_pk
 }
 PRECISION = 14
 BINS = 50
@@ -116,6 +117,7 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
     w_sectors = {}
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_DICT[num](hss)
+
         axes[i].imshow(h)
         w_sectors[f'({hss.n_tot})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -160,6 +162,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
     w_sectors = {}
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_K_DICT[num](hss)
+
         axes[i].imshow(np.abs(h))
         w_sectors[f'({hss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -196,7 +199,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
 
 def test_decomposition_kn(num: int, num_sites: int, n_max: int):
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, sym='KN')
-    fig, axes = plt.subplots(5, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, 5 * 2.5))
+    fig, axes = plt.subplots(num_sites + 1, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, (num_sites + 1) * 2.5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])
@@ -205,6 +208,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
     for i, hss in enumerate(hs.subspaces):
         for j, hsss in enumerate(hss.subspaces):
             h = HAMILTONIAN_K_DICT[num](hsss)
+    
             axes[j, i].imshow(np.abs(h))
             w_sectors[f'({hsss.n_tot}|{hsss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -329,11 +333,13 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='K', sym='PK', crystal_momentum=0)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
+
         axes[0, i].imshow(h)
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='K', sym='PK', crystal_momentum=num_sites//2)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
+
         axes[1, i].imshow(h)
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -461,11 +467,13 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='KN', sym='PKN', n_tot=n_tot, crystal_momentum=0)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
+
         axes[0, i].imshow(h)
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='KN', sym='PKN', n_tot=n_tot, crystal_momentum=num_sites//2)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
+
         axes[1, i].imshow(h)
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -503,14 +511,14 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
 
 
 def main():
-    test_symmetries(1, 4, 2)
-    test_decomposition_n(1, 4, 2)
-    test_decomposition_k(1, 4, 2)
-    test_decomposition_kn(1, 4, 2)
-    test_symmetries_k(1, 4, 2)
-    test_decomposition_pk(1, 4, 2)
-    test_symmetries_kn(1, 6, 2, 6)
-    test_decomposition_pkn(1, 6, 2, 6)
+    test_symmetries(5, 6, 1)
+    test_decomposition_n(3, 6, 1)
+    test_decomposition_k(3, 6, 1)
+    test_decomposition_kn(3, 6, 1)
+    test_symmetries_k(3, 6, 1)
+    test_decomposition_pk(3, 6, 1)
+    test_symmetries_kn(3, 6, 1, 3)
+    test_decomposition_pkn(3, 6, 1, 3)
 
 
 if __name__ == '__main__':

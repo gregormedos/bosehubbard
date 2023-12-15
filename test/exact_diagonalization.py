@@ -134,23 +134,23 @@ def plot_eigen_energies(file_name: str, eigen_energies: np.ndarray, reference_ei
 
 def run(
         file_name: str,
-        tunneling_rate: float = 1.0,
-        repulsion_strength: float = 1.0,
-        particle_transfer_rate: float = 0.0,
-        pair_production_rate: float = 0.0,
-        num_sites: int = 8,
-        n_max: int = 2,
+        t: float = 1.0,
+        U: float = 1.0,
+        V1: float = 0.0,
+        V2: float = 0.0,
+        L: int = 8,
+        M: int = 2,
         space: str = 'full',
         sym: str = None,
-        n_tot: int = None,
-        crystal_momentum: int = None,
-        reflection_parity: int = None,
+        N: int = None,
+        K: int = None,
+        P: int = None,
         reference_eigen_energies: np.ndarray = None
 ):
     with h5py.File(f'test/{file_name}.h5', 'w') as file:
         group = file.create_group('data')
-        hs = bh.DecomposedHilbertSpace(num_sites, n_max, space, sym, n_tot, crystal_momentum, reflection_parity)
-        exact_diagonalization(file, group, hs, tunneling_rate, repulsion_strength, particle_transfer_rate, pair_production_rate)
+        hs = bh.DecomposedHilbertSpace(num_sites=L, n_max=M, space=space, sym=sym, n_tot=N, crystal_momentum=K, reflection_parity=P)
+        exact_diagonalization(file, group, hs, tunneling_rate=t, repulsion_strength=U, particle_transfer_rate=V1, pair_production_rate=V2)
     with h5py.File(f'test/{file_name}.h5', 'r') as file:
         group = file['data']
         basis = group['basis'][()]
@@ -172,23 +172,26 @@ def run(
         return eigen_energies
 
 
-def main():
-    reference_eigen_energies = run('data1')
-    run('data2', sym='N', reference_eigen_energies=reference_eigen_energies)
-    run('data3', sym='K', reference_eigen_energies=reference_eigen_energies)
-    run('data4', sym='KN', reference_eigen_energies=reference_eigen_energies)
-    run('data5', sym='PK', reference_eigen_energies=reference_eigen_energies)
-    run('data6', sym='PKN', reference_eigen_energies=reference_eigen_energies)
-    reference_eigen_energies = run('data7', space='N', n_tot=8)
-    run('data8', space='N', sym='KN', n_tot=8, reference_eigen_energies=reference_eigen_energies)
-    run('data9', space='N', sym='PKN', n_tot=8, reference_eigen_energies=reference_eigen_energies)
-    reference_eigen_energies = run('data10', space='K', crystal_momentum=0)
-    run('data11', space='K', sym='PK', crystal_momentum=0, reference_eigen_energies=reference_eigen_energies)
-    reference_eigen_energies = run('data12', space='KN', n_tot=8, crystal_momentum=0)
-    run('data13', space='KN', sym='PKN', n_tot=8, crystal_momentum=0, reference_eigen_energies=reference_eigen_energies)
-    run('data14', space='PK', crystal_momentum=0, reflection_parity=1)
-    run('data15', space='PKN', sym='PKN', n_tot=8, crystal_momentum=0, reflection_parity=1)
+def main(**kwargs):
+    L = kwargs['L']
+    file_name = ''.join(f'{key}={val}_' for key, val in kwargs.items())
+    reference_eigen_energies = run(f'{file_name}space=full_sym=None', **kwargs)
+    run(f'{file_name}space=full_sym=N', **kwargs, sym='N', reference_eigen_energies=reference_eigen_energies)
+    run(f'{file_name}space=full_sym=K', **kwargs, sym='K', reference_eigen_energies=reference_eigen_energies)
+    run(f'{file_name}space=full_sym=KN', **kwargs, sym='KN', reference_eigen_energies=reference_eigen_energies)
+    run(f'{file_name}space=full_sym=PK', **kwargs, sym='PK', reference_eigen_energies=reference_eigen_energies)
+    run(f'{file_name}space=full_sym=PKN', **kwargs, sym='PKN', reference_eigen_energies=reference_eigen_energies)
+    reference_eigen_energies = run(f'{file_name}space=N_sym=None', **kwargs, space='N', N=L//2)
+    run(f'{file_name}space=N_sym=KN', **kwargs, space='N', sym='KN', N=L//2, reference_eigen_energies=reference_eigen_energies)
+    run(f'{file_name}space=N_sym=PKN', **kwargs, space='N', sym='PKN', N=L//2, reference_eigen_energies=reference_eigen_energies)
+    reference_eigen_energies = run(f'{file_name}space=K_sym=None', **kwargs, space='K', K=0)
+    run(f'{file_name}space=K_sym=PK', **kwargs, space='K', sym='PK', K=0, reference_eigen_energies=reference_eigen_energies)
+    reference_eigen_energies = run(f'{file_name}space=KN_sym=None', **kwargs, space='KN', N=L//2, K=0)
+    run(f'{file_name}space=KN_sym=PKN', **kwargs, space='KN', sym='PKN', N=L//2, K=0, reference_eigen_energies=reference_eigen_energies)
+    run(f'{file_name}space=PK_sym=None', **kwargs, space='PK', K=0, P=1)
+    run(f'{file_name}space=PKN_sym=None', **kwargs, space='PKN', sym='PKN', N=L//2, K=0, P=1)
 
 
 if __name__ == '__main__':
-    main()
+    main(t=1.0, U=1.0, V1=1.0, V2=0.0, L=12, M=1)
+    main(t=1.0, U=1.0, V1=1.0, V2=0.0, L=8, M=2)

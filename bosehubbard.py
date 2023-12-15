@@ -152,8 +152,8 @@ def fock_representative(s_state: np.ndarray, num_sites: int):
 
     """
     representative_state = np.copy(s_state)
-    t_state = np.copy(s_state)
     num_translations = 0
+    t_state = np.copy(s_state)
     for i in range(1, num_sites):
         t_state = np.roll(t_state, 1)
         if tuple(t_state) > tuple(representative_state):
@@ -253,14 +253,14 @@ def fock_representative_reflection(s_state: np.ndarray, num_sites: int):
 
     """
     representative_state, num_translations = fock_representative(s_state, num_sites)
-    t_state = np.flipud(s_state)
     num_reflections = 0
-    for i in range(1, num_sites):
-        t_state = np.roll(t_state, 1)
+    t_state = np.flipud(s_state)
+    for i in range(num_sites):
         if tuple(t_state) > tuple(representative_state):
             representative_state = np.copy(t_state)
             num_translations = i
             num_reflections = 1
+        t_state = np.roll(t_state, 1)
 
     return representative_state, num_translations, num_reflections
 
@@ -1094,12 +1094,8 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             num_translations_reflection_a = self.nums_translations_reflection[a]
-            if num_translations_reflection_a != -1:
-                phase_arg_a = (
-                        2.0 * np.pi / self.num_sites * self.crystal_momentum
-                        * num_translations_reflection_a
-                )
-                factor_a = 1.0 + self.reflection_parity * np.cos(phase_arg_a)
+            if num_translations_reflection_a >= 0:
+                factor_a = 2.0
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
@@ -1115,12 +1111,8 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             num_translations_reflection_a = self.nums_translations_reflection[a]
-            if num_translations_reflection_a != -1:
-                phase_arg_a = (
-                        2.0 * np.pi / self.num_sites * self.crystal_momentum
-                        * num_translations_reflection_a
-                )
-                factor_a = 1.0 + self.reflection_parity * np.cos(phase_arg_a)
+            if num_translations_reflection_a >= 0:
+                factor_a = 2.0
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
