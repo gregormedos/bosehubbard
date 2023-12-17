@@ -15,13 +15,14 @@ def print_basis(hs: bh.HilbertSpace):
 
 
 def main():
-    #hs = bh.HilbertSpace(6, 2, space='PKN', n_tot=6, crystal_momentum=0, reflection_parity=-1)
-    #print_basis(hs)
-    #h = hs.op_hamiltonian_tunnel_pk()
-    #plt.figure()
-    #plt.imshow(h)
-    #plt.show()
-    hs = bh.HilbertSpace(4, 2, space='PK', n_tot=4, crystal_momentum=0, reflection_parity=-1)
+    hs = bh.HilbertSpace(6, 2, space='PKN', n_tot=6, crystal_momentum=0, reflection_parity=-1)
+    print_basis(hs)
+    h = hs.op_hamiltonian_tunnel_pk()
+    plt.figure()
+    plt.imshow(h)
+    plt.show()
+    
+    hs = bh.HilbertSpace(4, 2, space='PK', crystal_momentum=0, reflection_parity=-1)
     print_basis(hs)
     h = hs.op_hamiltonian_annihilate_create_pair_pk()
     plt.figure()

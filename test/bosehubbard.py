@@ -1065,7 +1065,7 @@ class HilbertSpace:
     ):
         n_i = representative_state_a[i]
         state_b = np.copy(representative_state_a)
-        state_b[i] =+ r
+        state_b[i] += r
         if 0 <= state_b[i] <= self.n_max:
             (
                 representative_state_b,
