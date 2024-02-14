@@ -823,7 +823,7 @@ class HilbertSpace:
         return mat
 
     # quadratic operator
-    def __op_quadratic(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, d: tuple, r: tuple):
+    def _op_quadratic(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, d: tuple, r: tuple):
         n_i = state_a[i]
         t_state = np.copy(state_a)
         t_state[i] += r[0]
@@ -844,10 +844,10 @@ class HilbertSpace:
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
-            self.__op_quadratic(mat, state_a, a, 0, (1,), (-1, 1))
-            self.__op_quadratic(mat, state_a, a,  self.num_sites - 1, (-1,), (-1, 1))
+            self._op_quadratic(mat, state_a, a, 0, (1,), (-1, 1))
+            self._op_quadratic(mat, state_a, a,  self.num_sites - 1, (-1,), (-1, 1))
             for i in range(1, self.num_sites - 1):
-                self.__op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
@@ -857,12 +857,12 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
     # K-block quadratic operator
-    def __op_quadratic_k(
+    def _op_quadratic_k(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -899,12 +899,12 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             for i in range(self.num_sites):
-                self.__op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
     # PK-block quadratic operator
-    def __op_quadratic_pk(
+    def _op_quadratic_pk(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -958,12 +958,12 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
     # linear operator
-    def __op_linear(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, r: int):
+    def _op_linear(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, r: int):
         n_i = state_a[i]
         state_b = np.copy(state_a)
         state_b[i] += r
@@ -978,8 +978,8 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_linear(mat, state_a, a, i, -1)
-                self.__op_linear(mat, state_a, a, i, 1)
+                self._op_linear(mat, state_a, a, i, -1)
+                self._op_linear(mat, state_a, a, i, 1)
 
         return mat
     
@@ -989,8 +989,8 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites - 1):
-                self.__op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic(mat, state_a, a, i, (1,), (1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (1, 1))
 
         return mat
     
@@ -1000,13 +1000,13 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic(mat, state_a, a, i, (1,), (1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (1, 1))
 
         return mat
 
     # K-block linear operator
-    def __op_linear_k(
+    def _op_linear_k(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -1035,8 +1035,8 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             for i in range(self.num_sites):
-                self.__op_linear_k(mat, representative_state_a, translation_period_a, a, i, -1)
-                self.__op_linear_k(mat, representative_state_a, translation_period_a, a, i, 1)
+                self._op_linear_k(mat, representative_state_a, translation_period_a, a, i, -1)
+                self._op_linear_k(mat, representative_state_a, translation_period_a, a, i, 1)
 
         return mat
     
@@ -1047,13 +1047,13 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             for i in range(self.num_sites):
-                self.__op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (1, 1))
+                self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (-1, -1))
+                self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (1, 1))
 
         return mat
 
     # PK-block linear operator
-    def __op_linear_pk(
+    def _op_linear_pk(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -1099,8 +1099,8 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, -1)
-                self.__op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, 1)
+                self._op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, -1)
+                self._op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, 1)
 
         return mat
     
@@ -1116,8 +1116,8 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (1, 1))
+                self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (-1, -1))
+                self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (1, 1))
 
         return mat
 
