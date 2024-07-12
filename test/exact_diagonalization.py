@@ -3,8 +3,15 @@ import bosehubbard as bh
 import matplotlib.pyplot as plt
 import h5py
 
-plt.rcParams.update({'text.usetex': True,
+plt.rcParams.update({'text.usetex': False,
                      'font.size': 18})
+
+
+def main():
+    test(t=1.0, U=1.0, V1=0.0, V2=0.0, L=12, M=1)
+    # test(t=1.0, U=1.0, V1=1.0, V2=1.0, L=12, M=1)
+    test(t=1.0, U=1.0, V1=0.0, V2=0.0, L=8, M=2)
+    # test(t=1.0, U=1.0, V1=1.0, V2=1.0, L=8, M=2)
 
 
 def exact_diagonalization(
@@ -172,7 +179,7 @@ def run(
         return eigen_energies
 
 
-def main(**kwargs):
+def test(**kwargs):
     L = kwargs['L']
     file_name = ''.join(f'{key}={val}_' for key, val in kwargs.items())
     reference_eigen_energies = run(f'{file_name}space=full_sym=None', **kwargs)
@@ -193,5 +200,4 @@ def main(**kwargs):
 
 
 if __name__ == '__main__':
-    main(t=1.0, U=1.0, V1=1.0, V2=1.0, L=12, M=1)
-    main(t=1.0, U=1.0, V1=1.0, V2=1.0, L=8, M=2)
+    main()

@@ -25,6 +25,17 @@ PRECISION = 14
 BINS = 50
 
 
+def main():
+    test_symmetries(1, 4, 2)
+    test_decomposition_n(1, 4, 2)
+    test_decomposition_k(1, 4, 2)
+    test_decomposition_kn(1, 4, 2)
+    test_symmetries_k(1, 4, 2)
+    test_decomposition_pk(1, 4, 2)
+    test_symmetries_kn(1, 4, 2, 2)
+    test_decomposition_pkn(1, 4, 2, 2)
+
+
 def test_symmetries(num: int, num_sites: int, n_max: int):
     fig, axes = plt.subplots(2, 4, figsize=(10, 5))
     for axis in axes.flat:
@@ -508,17 +519,6 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
     fig.tight_layout()
     fig.savefig('test/decompostion_pkn_spect.pdf')
     plt.close(fig)
-
-
-def main():
-    test_symmetries(5, 6, 1)
-    test_decomposition_n(3, 6, 1)
-    test_decomposition_k(3, 6, 1)
-    test_decomposition_kn(3, 6, 1)
-    test_symmetries_k(3, 6, 1)
-    test_decomposition_pk(3, 6, 1)
-    test_symmetries_kn(3, 6, 1, 3)
-    test_decomposition_pkn(3, 6, 1, 3)
 
 
 if __name__ == '__main__':

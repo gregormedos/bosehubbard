@@ -12,6 +12,7 @@ Content
 Usage
 -----
 Uses NumPy for linear algebra.  `numpy` is imported as `np`.
+Uses SciPy for combinatorics.  `special` is imported from `scipy`.
 A Fock state is represented with an `np.ndarray` with the shape `(num_sites,)`,
 where `num_sites` is the number of sites.
 A state in the Fock basis is represented with an `np.ndarray` with the
@@ -23,6 +24,7 @@ the shape `(dim, dim)`.
 
 """
 import numpy as np
+from scipy import special
 
 
 def fock_lower(s_state: np.ndarray, i: int):
@@ -265,11 +267,50 @@ def fock_representative_reflection(s_state: np.ndarray, num_sites: int):
     return representative_state, num_translations, num_reflections
 
 
-def dim_full(num_sites: int, n_max: int):
+def dim_full_hardcore(num_sites: int):
     """
-    Calculate the full Hilbert space dimension, given the number of
-    sites `num_sites` and the restriction on the maximum number of bosons on
-    site `n_max`.
+    Calculate the full hardcore bosonic Hilbert space dimension,
+    given the number of sites `num_sites`.
+
+    Parameters
+    ----------
+    num_sites : int
+        Number of sites
+
+    Returns
+    -------
+    dim : int
+        Hilbert space dimension
+
+    """
+    return 2 ** num_sites
+
+
+def dim_full_softcore(num_sites: int, n_max: int):
+    """
+    Calculate the full softcore bosonic Hilbert space dimension,
+    given the number of sites `num_sites` and the maximum site occupation number `n_max`.
+
+    Parameters
+    ----------
+    num_sites : int
+        Number of sites
+    n_max : int
+        Maximum site occupation number
+
+    Returns
+    -------
+    dim : int
+        Hilbert space dimension
+
+    """
+    return (n_max + 1) ** num_sites
+
+
+def gen_basis_full_hardcore(num_sites: int, dim: int):
+    """
+    Generate the full Hilbert space Fock basis, given the number of
+    sites `num_sites` and the full Hilbert space dimension.
 
     Parameters
     ----------
@@ -277,17 +318,35 @@ def dim_full(num_sites: int, n_max: int):
         Number of sites
     n_max : int
         Maximum number of bosons on site
-
-    Returns
-    -------
     dim : int
         Hilbert space dimension
     
+    Returns
+    -------
+    basis : np.ndarray
+        Hilbert space Fock basis
+
     """
-    return (n_max + 1) ** num_sites
+    if num_sites > 1:
+        basis = np.empty((dim, num_sites), dtype=int)
+        a = 0
+        for n in range(2):
+            sub_num_sites = num_sites - 1
+            sub_dim = dim // 2
+            basis[a: a + sub_dim, 0] = 1 - n
+            basis[a: a + sub_dim, 1:] = gen_basis_full_hardcore(sub_num_sites, sub_dim)
+            a += sub_dim
+    elif num_sites == 1:
+        basis = np.empty((dim, 1), dtype=int)
+        for n in range(dim):
+            basis[n] = 1 - n
+    else:
+        basis = None
+
+    return basis
 
 
-def gen_basis_full(num_sites: int, n_max: int, dim: int):
+def gen_basis_full_softcore(num_sites: int, dim: int, n_max: int):
     """
     Generate the full Hilbert space Fock basis, given the number of
     sites `num_sites`, the restriction on the maximum number of bosons on site
@@ -315,20 +374,111 @@ def gen_basis_full(num_sites: int, n_max: int, dim: int):
             sub_num_sites = num_sites - 1
             sub_dim = dim // (n_max + 1)
             basis[a: a + sub_dim, 0] = n_max - n
-            basis[a: a + sub_dim, 1:] = gen_basis_full(sub_num_sites, n_max, sub_dim)
+            basis[a: a + sub_dim, 1:] = gen_basis_full_softcore(sub_num_sites, sub_dim, n_max)
             a += sub_dim
-    else:
-        basis = np.empty((dim, num_sites), dtype=int)
+    elif num_sites == 1:
+        basis = np.empty((dim, 1), dtype=int)
         for n in range(dim):
             basis[n] = n_max - n
+    else:
+        basis = None
 
     return basis
 
 
-def dim_nblock(num_sites: int, n_tot: int):
+def dim_nblock_hardcore(num_sites: int, n_tot: int):
     """
-    Calculate the N-block Hilbert space dimension, given the number of
-    sites `num_sites` and the total number of bosons `n_tot`.
+    Calculate the N-block hardcore bosonic Hilbert space dimension,
+    given the number of sites `num_sites` and the total particle number `n_tot`.
+
+    Parameters
+    ----------
+    num_sites : int
+        Number of sites
+    n_tot : int
+        Total particle number
+
+    Returns
+    -------
+    dim : int
+        Hilbert space dimension
+
+    """
+    if num_sites < n_tot:
+        return 0
+    else:
+        return special.comb(num_sites, n_tot, exact=True)
+
+
+def dim_nblock_bosonic(num_sites: int, n_tot: int):
+    """
+    Calculate the N-block bosonic Hilbert space dimension,
+    given the number of sites `num_sites` and the total particle number `n_tot`.
+
+    Parameters
+    ----------
+    num_sites : int
+        Number of sites
+    n_tot : int
+        Total particle number
+
+    Returns
+    -------
+    dim : int
+        Hilbert space dimension
+
+    """
+    if num_sites == 0:
+        if n_tot == 0:
+            return 1
+        else:
+            return 0
+    else:
+        return special.comb(num_sites + n_tot - 1, n_tot, exact=True)
+
+
+def dim_nblock_softcore(num_sites: int, n_tot: int, n_max: int):
+    """
+    Calculate the N-block softcore bosonic Hilbert space dimension,
+    given the number of sites `num_sites`, the total particle number `n_tot`
+    and the maximum site occupation number `n_max`.
+
+    Parameters
+    ----------
+    num_sites : int
+        Number of sites
+    n_tot : int
+        Total particle number
+    n_max : int
+        Maximum site occupation number
+
+    Returns
+    -------
+    dim : int
+        Hilbert space dimension
+
+    """
+    if num_sites * n_max < n_tot:
+        return 0
+    elif num_sites == 0 and n_tot == 0:
+        return 1
+    else:
+        dimension = 0
+        for k in range(num_sites + 1):
+            dimension += (
+                (-1) ** k
+                * special.comb(num_sites, k, exact=True)
+                * special.comb(num_sites + n_tot - k * (n_max + 1) - 1, num_sites - 1, exact=True)
+            )
+    
+    return dimension
+
+
+def gen_basis_nblock_hardcore(num_sites: int, n_tot: int, dim: int):
+    """
+    Generate the N-block Hilbert space Fock basis, given the number of
+    sites `num_sites`, the total number of hardcore bosons `n_tot`
+    and the N-block Hilbert space dimension.
 
     Parameters
     ----------
@@ -336,21 +486,36 @@ def dim_nblock(num_sites: int, n_tot: int):
         Number of sites
     n_tot : int
         Total number of bosons
-
-    Returns
-    -------
     dim : int
         Hilbert space dimension
     
+    Returns
+    -------
+    basis : np.ndarray
+        Hilbert space Fock basis
+
     """
-    return (
-        np.math.factorial(num_sites + n_tot - 1)
-        // np.math.factorial(num_sites - 1)
-        // np.math.factorial(n_tot)
-    )
+    if num_sites < n_tot:
+        basis = None
+    elif num_sites > 1:
+        basis = np.empty((dim, num_sites), dtype=int)
+        a = 0
+        for n in range(n_tot - 1, n_tot + 1):
+            sub_num_sites = num_sites - 1
+            sub_dim = dim_nblock_hardcore(sub_num_sites, n)
+            if sub_dim > 0:
+                basis[a: a + sub_dim, 0] = n_tot - n
+                basis[a: a + sub_dim, 1:] = gen_basis_nblock_hardcore(sub_num_sites, n, sub_dim)
+                a += sub_dim
+    elif num_sites == 1:
+        basis = np.array([n_tot], dtype=int)
+    else:
+        basis = None
+
+    return basis
 
 
-def gen_basis_nblock(num_sites: int, n_tot: int, dim: int):
+def gen_basis_nblock_bosonic(num_sites: int, n_tot: int, dim: int):
     """
     Generate the N-block Hilbert space Fock basis, given the number of
     sites `num_sites`, the total number of bosons `n_tot` and the N-block Hilbert
@@ -376,21 +541,24 @@ def gen_basis_nblock(num_sites: int, n_tot: int, dim: int):
         a = 0
         for n in range(n_tot + 1):
             sub_num_sites = num_sites - 1
-            sub_dim = dim_nblock(sub_num_sites, n)
+            sub_dim = dim_nblock_bosonic(sub_num_sites, n)
             basis[a: a + sub_dim, 0] = n_tot - n
-            basis[a: a + sub_dim, 1:] = gen_basis_nblock(sub_num_sites, n, sub_dim)
+            basis[a: a + sub_dim, 1:] = gen_basis_nblock_bosonic(sub_num_sites, n, sub_dim)
             a += sub_dim
-    else:
+    elif num_sites == 1:
         basis = np.array([n_tot], dtype=int)
+    else:
+        basis = None
 
     return basis
 
 
-def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int):
+def gen_basis_nblock_softcore(num_sites: int, n_tot: int, dim: int, n_max: int):
     """
     Generate the N-block Hilbert space Fock basis, given the number of
-    sites `num_sites`, the total number of bosons `n_tot` and the restriction on
-    the maximum number of bosons on site `n_max`.
+    sites `num_sites`, the total number of softcore bosons `n_tot`,
+    the N-block Hilbert space dimension,
+    and the restriction on the maximum number of bosons on site `n_max`.
 
     Parameters
     ----------
@@ -409,35 +577,64 @@ def gen_basis_nblock_nmax(num_sites: int, n_tot: int, n_max: int):
         Hilbert space dimension
 
     """
-    if n_tot <= n_max:
-        dim = dim_nblock(num_sites, n_tot)
-        basis = gen_basis_nblock(num_sites, n_tot, dim)
+    if num_sites * n_max < n_tot:
+        basis = None
     elif num_sites > 1:
-        n_min = n_tot - n_max
-        sub_dim_list = []
-        basis_block_list = []
-        basis_block_list_len = n_max + 1
-        for n in range(n_min, n_tot + 1):
-            sub_basis, sub_dim = gen_basis_nblock_nmax(num_sites - 1, n, n_max)
-            if sub_basis is None:
-                basis_block_list_len -= 1
-            else:
-                basis_block = np.empty((sub_dim, num_sites), dtype=int)
-                basis_block[:, 0] = n_tot - n
-                basis_block[:, 1:] = sub_basis
-                sub_dim_list.append(sub_dim)
-                basis_block_list.append(basis_block)
-        dim = np.sum(sub_dim_list, dtype=int)
         basis = np.empty((dim, num_sites), dtype=int)
         a = 0
-        for i in range(basis_block_list_len):
-            basis[a: a + sub_dim_list[i], :] = basis_block_list[i]
-            a += sub_dim_list[i]
+        for n in range(n_tot - n_max, n_tot + 1):
+            sub_num_sites = num_sites - 1
+            sub_dim = dim_nblock_softcore(sub_num_sites, n, n_max)
+            if sub_dim > 0:
+                basis[a: a + sub_dim, 0] = n_tot - n
+                basis[a: a + sub_dim, 1:] = gen_basis_nblock_softcore(sub_num_sites, n, sub_dim, n_max)
+                a += sub_dim
+    elif num_sites == 1:
+        basis = np.array([n_tot], dtype=int)
     else:
-        dim = None
         basis = None
 
-    return basis, dim
+    return basis
+
+
+def dim_full(num_sites: int, n_max: int):
+    if n_max == 1:
+        return dim_full_hardcore(num_sites)
+    elif n_max > 1:
+        return dim_full_softcore(num_sites, n_max)
+    else:
+        raise ValueError("Argument n_max of dim_full must be greater than 0 but was given " + f"{n_max}")
+    
+
+def gen_basis_full(num_sites: int, dim: int, n_max: int):
+    if n_max == 1:
+        return gen_basis_full_hardcore(num_sites, dim)
+    elif n_max > 1:
+        return gen_basis_full_softcore(num_sites, dim, n_max)
+    else:
+        raise ValueError("Argument n_max of gen_basis_full must be greater than 0 but was given " + f"{n_max}")
+    
+
+def dim_nblock(num_sites: int, n_tot: int, n_max: int):
+    if n_max == 1:
+        return dim_nblock_hardcore(num_sites, n_tot)
+    elif n_max >= n_tot:
+        return dim_nblock_bosonic(num_sites, n_tot)
+    elif n_max > 1:
+        return dim_nblock_softcore(num_sites, n_tot, n_max)
+    else:
+        raise ValueError("Argument n_max of dim_nblock must be greater than 0 but was given " + f"{n_max}")
+    
+
+def gen_basis_nblock(num_sites: int, n_tot: int, dim: int, n_max: int):
+    if n_max == 1:
+        return gen_basis_nblock_hardcore(num_sites, n_tot, dim)
+    elif n_max >= n_tot:
+        return gen_basis_nblock_bosonic(num_sites, n_tot, dim)
+    elif n_max > 1:
+        return gen_basis_nblock_softcore(num_sites, n_tot, dim, n_max)
+    else:
+        raise ValueError("Argument n_max of gen_basis_nblock must be greater than 0 but was given " + f"{n_max}")
 
 
 def gen_basis_nblock_from_full(super_basis: np.ndarray, n_tot: int):
@@ -624,20 +821,21 @@ class HilbertSpace:
 
         if space == 'full':
             self.dim = dim_full(num_sites, n_max)
-            self.basis = gen_basis_full(num_sites, n_max, self.dim)
+            self.basis = gen_basis_full(num_sites, self.dim, n_max)
             self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
         
         elif space == 'N':
-            self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            self.dim = dim_nblock(num_sites, n_tot, n_max)
+            self.basis = gen_basis_nblock(num_sites, n_tot, self.dim, n_max)
             self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
             
         elif space == 'K':
             self.dim = dim_full(num_sites, n_max)
-            self.basis = gen_basis_full(num_sites, n_max, self.dim)
+            self.basis = gen_basis_full(num_sites, self.dim, n_max)
             self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
@@ -651,7 +849,8 @@ class HilbertSpace:
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         elif space == 'KN':
-            self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            self.dim = dim_nblock(num_sites, n_tot, n_max)
+            self.basis = gen_basis_nblock(num_sites, n_tot, self.dim, n_max)
             self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
@@ -666,7 +865,7 @@ class HilbertSpace:
 
         elif space == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             self.dim = dim_full(num_sites, n_max)
-            self.basis = gen_basis_full(num_sites, n_max, self.dim)
+            self.basis = gen_basis_full(num_sites, self.dim, n_max)
             self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
@@ -686,7 +885,8 @@ class HilbertSpace:
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         elif space == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-            self.basis, self.dim = gen_basis_nblock_nmax(num_sites, n_tot, n_max)
+            self.dim = dim_nblock(num_sites, n_tot, n_max)
+            self.basis = gen_basis_nblock(num_sites, n_tot, self.dim, n_max)
             self.findstate = {}
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
@@ -823,7 +1023,7 @@ class HilbertSpace:
         return mat
 
     # quadratic operator
-    def __op_quadratic(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, d: tuple, r: tuple):
+    def _op_quadratic(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, d: tuple, r: tuple):
         n_i = state_a[i]
         t_state = np.copy(state_a)
         t_state[i] += r[0]
@@ -844,10 +1044,10 @@ class HilbertSpace:
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
-            self.__op_quadratic(mat, state_a, a, 0, (1,), (-1, 1))
-            self.__op_quadratic(mat, state_a, a,  self.num_sites - 1, (-1,), (-1, 1))
+            self._op_quadratic(mat, state_a, a, 0, (1,), (-1, 1))
+            self._op_quadratic(mat, state_a, a,  self.num_sites - 1, (-1,), (-1, 1))
             for i in range(1, self.num_sites - 1):
-                self.__op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
@@ -857,12 +1057,12 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
     # K-block quadratic operator
-    def __op_quadratic_k(
+    def _op_quadratic_k(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -899,12 +1099,12 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             for i in range(self.num_sites):
-                self.__op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
     # PK-block quadratic operator
-    def __op_quadratic_pk(
+    def _op_quadratic_pk(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -958,12 +1158,12 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1, -1), (-1, 1))
+                self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1, -1), (-1, 1))
 
         return mat
 
     # linear operator
-    def __op_linear(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, r: int):
+    def _op_linear(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, r: int):
         n_i = state_a[i]
         state_b = np.copy(state_a)
         state_b[i] += r
@@ -978,8 +1178,8 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_linear(mat, state_a, a, i, -1)
-                self.__op_linear(mat, state_a, a, i, 1)
+                self._op_linear(mat, state_a, a, i, -1)
+                self._op_linear(mat, state_a, a, i, 1)
 
         return mat
     
@@ -989,8 +1189,8 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites - 1):
-                self.__op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic(mat, state_a, a, i, (1,), (1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (1, 1))
 
         return mat
     
@@ -1000,13 +1200,13 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             for i in range(self.num_sites):
-                self.__op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic(mat, state_a, a, i, (1,), (1, 1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (-1, -1))
+                self._op_quadratic(mat, state_a, a, i, (1,), (1, 1))
 
         return mat
 
     # K-block linear operator
-    def __op_linear_k(
+    def _op_linear_k(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -1035,8 +1235,8 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             for i in range(self.num_sites):
-                self.__op_linear_k(mat, representative_state_a, translation_period_a, a, i, -1)
-                self.__op_linear_k(mat, representative_state_a, translation_period_a, a, i, 1)
+                self._op_linear_k(mat, representative_state_a, translation_period_a, a, i, -1)
+                self._op_linear_k(mat, representative_state_a, translation_period_a, a, i, 1)
 
         return mat
     
@@ -1047,13 +1247,13 @@ class HilbertSpace:
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
             for i in range(self.num_sites):
-                self.__op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (1, 1))
+                self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (-1, -1))
+                self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1,), (1, 1))
 
         return mat
 
     # PK-block linear operator
-    def __op_linear_pk(
+    def _op_linear_pk(
             self,
             mat: np.ndarray,
             representative_state_a: np.ndarray,
@@ -1099,8 +1299,8 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, -1)
-                self.__op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, 1)
+                self._op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, -1)
+                self._op_linear_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, 1)
 
         return mat
     
@@ -1116,8 +1316,8 @@ class HilbertSpace:
             else:
                 factor_a = 1.0
             for i in range(self.num_sites):
-                self.__op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (-1, -1))
-                self.__op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (1, 1))
+                self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (-1, -1))
+                self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1,), (1, 1))
 
         return mat
 
