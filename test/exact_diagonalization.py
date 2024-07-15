@@ -9,9 +9,9 @@ plt.rcParams.update({'text.usetex': False,
 
 def main():
     test(t=1.0, U=1.0, V1=0.0, V2=0.0, L=12, M=1)
-    # test(t=1.0, U=1.0, V1=1.0, V2=1.0, L=12, M=1)
-    test(t=1.0, U=1.0, V1=0.0, V2=0.0, L=8, M=2)
-    # test(t=1.0, U=1.0, V1=1.0, V2=1.0, L=8, M=2)
+    test(t=1.0, U=1.0, V1=1.0, V2=1.0, L=12, M=1)
+    test(t=1.0, U=1.0, V1=0.0, V2=0.0, L=6, M=2)
+    test(t=1.0, U=1.0, V1=1.0, V2=1.0, L=6, M=2)
 
 
 def exact_diagonalization(
@@ -27,8 +27,8 @@ def exact_diagonalization(
     param.create_dataset('num_sites', data=hs.num_sites)
     param.create_dataset('n_max', data=hs.n_max)
     param.create_dataset('space', data=hs.space)
-    group.create_dataset('basis', data=hs.basis)
     group.create_dataset('dim', data=hs.dim)
+    group.create_dataset('basis', data=hs.basis)
     if hs.sym is not None:
         param.create_dataset('sym', data=hs.sym)
     if hs.n_tot is not None:
@@ -40,7 +40,7 @@ def exact_diagonalization(
         group.create_dataset('representative_dim', data=hs.representative_dim)
     if hs.reflection_parity is not None:
         param.create_dataset('reflection_parity', data=hs.reflection_parity)
-        group.create_dataset('reflection_translation_periods', data=hs.nums_translations_reflection)
+        group.create_dataset('nums_translations_reflection', data=hs.nums_translations_reflection)
     file.flush()
     if hs.subspaces is not None:
         group.create_group('subspaces')
@@ -56,12 +56,12 @@ def exact_diagonalization(
             )
     else:
         spectrum = group.create_group('spectrum')
-        if hs.space in ('PK', 'PKN'):
+        if hs.space in {'PK', 'PKN'}:
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_pk()
             hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
             hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create_pk()
             hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_pk()
-        elif hs.space in ('K', 'KN'):
+        elif hs.space in {'K', 'KN'}:
             hamiltonian_tunnel = hs.op_hamiltonian_tunnel_k()
             hamiltonian_interaction = hs.op_hamiltonian_interaction_k()
             hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create_k()
@@ -71,10 +71,12 @@ def exact_diagonalization(
             hamiltonian_interaction = hs.op_hamiltonian_interaction()
             hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create()
             hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_pbc()
-        hamiltonian = (- tunneling_rate * hamiltonian_tunnel
-                       + repulsion_strength * hamiltonian_interaction
-                       + particle_transfer_rate * hamiltonian_annihilate_create
-                       + pair_production_rate * hamiltonian_annihilate_create_pair)
+        hamiltonian = (
+            - tunneling_rate * hamiltonian_tunnel
+            + repulsion_strength * hamiltonian_interaction
+            + particle_transfer_rate * hamiltonian_annihilate_create
+            + pair_production_rate * hamiltonian_annihilate_create_pair
+        )
         eigen_energies, eigen_states = np.linalg.eigh(hamiltonian)
         spectrum.create_dataset('eigen_energies', data=eigen_energies)
         spectrum.create_dataset('eigen_states', data=eigen_states)
