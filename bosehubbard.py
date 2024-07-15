@@ -930,8 +930,8 @@ class HilbertSpace:
             for a in range(representative_dim_k):
                 representative_state_a = representative_basis_k[a]
                 translation_period_a = translation_periods_k[a]
+                normalization_a = np.sqrt(translation_period_a) / self.num_sites
                 for r in range(self.num_sites):
-                    normalization_a = np.sqrt(translation_period_a) / self.num_sites
                     phase_arg = -2.0 * np.pi / self.num_sites * k * r 
                     t_state_a = np.roll(representative_state_a, r)
                     change_of_basis_mat[
@@ -956,8 +956,8 @@ class HilbertSpace:
                 for a in range(representative_dim_kn):
                     representative_state_a = representative_basis_kn[a]
                     translation_period_a = translation_periods_kn[a]
+                    normalization_a = np.sqrt(translation_period_a) / self.num_sites
                     for r in range(self.num_sites):
-                        normalization_a = np.sqrt(translation_period_a) / self.num_sites
                         phase_arg = -2.0 * np.pi / self.num_sites * k * r 
                         t_state_a = np.roll(representative_state_a, r)
                         change_of_basis_mat[
@@ -995,7 +995,7 @@ class HilbertSpace:
                     beginning_of_block + a
                 ] += normalization_a
                 if num_translations_reflection_a == -1:
-                    r_state_a, num_translations_a = fock_representative(fock_reflection(representative_state_a), self.num_sites)
+                    r_state_a, num_translations_a = fock_representative(np.flipud(representative_state_a), self.num_sites)
                     change_of_basis_mat[
                         self.representative_findstate[tuple(r_state_a)],
                         beginning_of_block + a
@@ -1399,7 +1399,7 @@ class DecomposedHilbertSpace(HilbertSpace):
             for a in range(self.dim):
                 self.findstate[tuple(self.basis[a])] = a
         
-        elif space in ('K', 'KN'):
+        elif space in {'K', 'KN'}:
             self.basis = super_basis
             self.findstate = super_findstate
             self.dim = super_dim
@@ -1412,7 +1412,7 @@ class DecomposedHilbertSpace(HilbertSpace):
             for a in range(self.representative_dim):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
-        elif space in ('PK', 'PKN') and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
+        elif space in {'PK', 'PKN'} and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
             self.basis = super_basis
             self.findstate = super_findstate
             self.dim = super_dim
@@ -1432,7 +1432,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                 self.representative_findstate[tuple(self.representative_basis[a])] = a
 
         if space == 'full':
-            if sym in ('N', 'KN', 'PKN'):
+            if sym in {'N', 'KN', 'PKN'}:
                 self.subspaces = []
                 for n in range(num_sites * n_max + 1):
                     self.subspaces.append(
@@ -1447,7 +1447,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                             super_dim=self.dim
                         )
                     )
-            elif sym in ('K', 'PK'):
+            elif sym in {'K', 'PK'}:
                 self.subspaces = []
                 for k in range(num_sites):
                     self.subspaces.append(
@@ -1464,7 +1464,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                     )
 
         elif space == 'N':
-            if sym in ('KN', 'PKN'):
+            if sym in {'KN', 'PKN'}:
                 self.subspaces = []
                 for k in range(num_sites):
                     self.subspaces.append(
