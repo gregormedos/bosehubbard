@@ -1049,7 +1049,7 @@ class HilbertSpace:
             for i in range(1, self.num_sites - 1):
                 self._op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
 
-        return mat
+        return -mat
 
     # tunneling Hamiltonian with PBC
     def op_hamiltonian_tunnel_pbc(self):
@@ -1059,7 +1059,7 @@ class HilbertSpace:
             for i in range(self.num_sites):
                 self._op_quadratic(mat, state_a, a, i, (1, -1), (-1, 1))
 
-        return mat
+        return -mat
 
     # K-block quadratic operator
     def _op_quadratic_k(
@@ -1101,7 +1101,7 @@ class HilbertSpace:
             for i in range(self.num_sites):
                 self._op_quadratic_k(mat, representative_state_a, translation_period_a, a, i, (1, -1), (-1, 1))
 
-        return mat
+        return -mat
 
     # PK-block quadratic operator
     def _op_quadratic_pk(
@@ -1160,7 +1160,7 @@ class HilbertSpace:
             for i in range(self.num_sites):
                 self._op_quadratic_pk(mat, representative_state_a, translation_period_a, factor_a, a, i, (1, -1), (-1, 1))
 
-        return mat
+        return -mat
 
     # linear operator
     def _op_linear(self, mat: np.ndarray, state_a: np.ndarray, a: int, i: int, r: int):
