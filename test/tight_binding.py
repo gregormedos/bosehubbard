@@ -13,7 +13,7 @@ def main():
     num_sites = 1000
     tunneling_rate = 0.5
     hs = bh.HilbertSpace(num_sites, 1, 'N', 1)
-    hamiltonian_tunnel = -tunneling_rate * hs.op_hamiltonian_tunnel_pbc()
+    hamiltonian_tunnel = tunneling_rate * hs.op_hamiltonian_tunnel_pbc()
     eigen_energies = np.linalg.eigvalsh(hamiltonian_tunnel)
     energy_step = 0.01
     energies = np.arange(-2.0 * tunneling_rate + energy_step, 2.0 * tunneling_rate, energy_step)

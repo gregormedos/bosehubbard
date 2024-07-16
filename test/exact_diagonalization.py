@@ -72,7 +72,7 @@ def exact_diagonalization(
             hamiltonian_annihilate_create = hs.op_hamiltonian_annihilate_create()
             hamiltonian_annihilate_create_pair = hs.op_hamiltonian_annihilate_create_pair_pbc()
         hamiltonian = (
-            - tunneling_rate * hamiltonian_tunnel
+            tunneling_rate * hamiltonian_tunnel
             + repulsion_strength * hamiltonian_interaction
             + particle_transfer_rate * hamiltonian_annihilate_create
             + pair_production_rate * hamiltonian_annihilate_create_pair
