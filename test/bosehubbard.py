@@ -919,7 +919,11 @@ class HilbertSpace:
         return change_of_basis_mat
 
     def basis_transformation_k(self, mat: np.ndarray):
-        change_of_basis_mat = np.zeros(mat.shape, dtype=complex)
+        if self.crystal_momentum == 0 or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+            dtype = float
+        else:
+            dtype = complex
+        change_of_basis_mat = np.zeros(mat.shape, dtype=dtype)
         beginning_of_block = 0
         for k in range(self.num_sites):
             (
@@ -933,17 +937,25 @@ class HilbertSpace:
                 normalization_a = np.sqrt(translation_period_a) / self.num_sites
                 for r in range(self.num_sites):
                     phase_arg = -2.0 * np.pi / self.num_sites * k * r 
+                    if (self.crystal_momentum == 0) or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+                        bloch_wave = np.cos(phase_arg)
+                    else:
+                        bloch_wave = np.exp(1.0j * phase_arg)
                     t_state_a = np.roll(representative_state_a, r)
                     change_of_basis_mat[
                         self.findstate[tuple(t_state_a)],
                         beginning_of_block + a
-                    ] += normalization_a * np.exp(1.0j * phase_arg)
+                    ] += normalization_a * bloch_wave
             beginning_of_block += representative_dim_k
 
         return change_of_basis_mat
     
     def basis_transformation_kn(self, mat: np.ndarray):
-        change_of_basis_mat = np.zeros(mat.shape, dtype=complex)
+        if self.crystal_momentum == 0 or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+            dtype = float
+        else:
+            dtype = complex
+        change_of_basis_mat = np.zeros(mat.shape, dtype=dtype)
         beginning_of_block = 0
         for n in range(self.num_sites * self.n_max + 1):
             basis_n, dim_n = gen_basis_nblock_from_full(self.basis, n)
@@ -959,11 +971,15 @@ class HilbertSpace:
                     normalization_a = np.sqrt(translation_period_a) / self.num_sites
                     for r in range(self.num_sites):
                         phase_arg = -2.0 * np.pi / self.num_sites * k * r 
+                        if (self.crystal_momentum == 0) or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+                            bloch_wave = np.cos(phase_arg)
+                        else:
+                            bloch_wave = np.exp(1.0j * phase_arg)
                         t_state_a = np.roll(representative_state_a, r)
                         change_of_basis_mat[
                             self.findstate[tuple(t_state_a)],
                             beginning_of_block + a
-                        ] += normalization_a * np.exp(1.0j * phase_arg)
+                        ] += normalization_a * bloch_wave
                 beginning_of_block += representative_dim_kn
 
         return change_of_basis_mat
