@@ -1088,13 +1088,21 @@ class HilbertSpace:
                         b = self.representative_findstate[tuple(representative_state_b)]
                         translation_period_b = self.translation_periods[b]
                         phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * num_translations_b
+                        if (self.crystal_momentum == 0) or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+                            bloch_wave = np.cos(phase_arg)
+                        else:
+                            bloch_wave = np.exp(1.0j * phase_arg)  # complex conjugated
                         mat[a, b] += np.sqrt(
                             (n_i + (r[0]+1)/2.0) * (n_j + (r[1]+1)/2.0) * translation_period_a / translation_period_b
-                        ) * np.exp(1.0j * phase_arg)  # complex conjugated
+                        ) * bloch_wave  # complex conjugated
 
     # K-block tunneling Hamiltonian
     def op_hamiltonian_tunnel_k(self):
-        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        if self.crystal_momentum == 0 or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+            dtype = float
+        else:
+            dtype = complex
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=dtype)
         for a in range(self.representative_dim):
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
@@ -1224,13 +1232,21 @@ class HilbertSpace:
                 b = self.representative_findstate[tuple(representative_state_b)]
                 translation_period_b = self.translation_periods[b]
                 phase_arg = 2.0 * np.pi / self.num_sites * self.crystal_momentum * num_translations_b
+                if (self.crystal_momentum == 0) or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+                    bloch_wave = np.cos(phase_arg)
+                else:
+                    bloch_wave = np.exp(1.0j * phase_arg)  # complex conjugated
                 mat[a, b] += np.sqrt(
                     (n_i + (r+1)/2.0) * translation_period_a / translation_period_b
-                ) * np.exp(1.0j * phase_arg)  # complex conjugated
+                ) * bloch_wave  # complex conjugated
 
     # K-block annihilation and creation Hamiltonian
     def op_hamiltonian_annihilate_create_k(self):
-        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        if self.crystal_momentum == 0 or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+            dtype = float
+        else:
+            dtype = complex
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=dtype)
         for a in range(self.representative_dim):
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
@@ -1242,7 +1258,11 @@ class HilbertSpace:
     
     # K-block pair annihilation and creation Hamiltonian
     def op_hamiltonian_annihilate_create_pair_k(self):
-        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=complex)
+        if self.crystal_momentum == 0 or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+            dtype = float
+        else:
+            dtype = complex
+        mat = np.zeros((self.representative_dim, self.representative_dim), dtype=dtype)
         for a in range(self.representative_dim):
             representative_state_a = self.representative_basis[a]
             translation_period_a = self.translation_periods[a]
