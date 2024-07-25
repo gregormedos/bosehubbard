@@ -1,3 +1,4 @@
+import numpy as np
 import bosehubbard as bh
 import matplotlib.pyplot as plt
 
@@ -15,19 +16,18 @@ def print_basis(hs: bh.HilbertSpace):
 
 
 def main():
-    hs = bh.HilbertSpace(6, 2, space='PKN', n_tot=6, crystal_momentum=0, reflection_parity=-1)
-    print_basis(hs)
-    h = hs.op_hamiltonian_tunnel_pk()
-    plt.figure()
-    plt.imshow(h)
-    plt.show()
-    
-    hs = bh.HilbertSpace(4, 2, space='PK', crystal_momentum=0, reflection_parity=-1)
-    print_basis(hs)
-    h = hs.op_hamiltonian_annihilate_create_pair_pk()
-    plt.figure()
-    plt.imshow(h)
-    plt.show()
+    L = 3
+    for trans in range(L):
+        state = np.roll([1, 2, 3], trans)
+        print(state)
+        r_state, r = bh.fock_representative(state, L)
+        print(r_state, r)
+        R = bh.fock_checkstate(state, L, 0)
+        print(R)
+        r_state, r, l = bh.fock_representative_reflection(state, L)
+        print(r_state, r, l)
+        R, m = bh.fock_checkstate_reflection(state, L, 0)
+        print(R, m)
 
 
 if __name__ == '__main__':
