@@ -33,7 +33,7 @@ def main2(L: int, M: int, N: int):
         if (K == 0) or (L % 2 == 0 and K == L // 2):
             for P in (1, -1):
                 representative_basis_P, trans, trans_refl, dim_P = bh.gen_representative_basis_pkblock(basis_N, L, K, P)
-                sector_P = sector_K[('PKN', P, K, N, dim_K)] = {}
+                sector_P = sector_K[('PKN', P, K, N, dim_P)] = {}
     print(sector_to_dimension)
     def get_end_nodes(map: dict, end_nodes: list = None):
         if end_nodes is None:
