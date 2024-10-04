@@ -25,7 +25,7 @@ def main():
     plt.xlabel('$E$')
     plt.ylabel('DOS($E$)')
     plt.tight_layout()
-    plt.savefig('test/tight_binding.pdf')
+    plt.savefig('test/plots/tight_binding.pdf')
 
 
 if __name__ == '__main__':
