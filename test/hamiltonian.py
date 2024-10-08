@@ -44,7 +44,7 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
 
     hs = bh.HilbertSpace(num_sites, n_max)
     h = HAMILTONIAN_DICT[num](hs)
-    axes[0, 0].imshow(h)
+    axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -54,14 +54,14 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_spect.txt', 'w') as file:
+    with open('test/data/symmetries_spect.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_n(h)
     h = s.T @ h @ s
-    axes[0, 1].imshow(h)
+    axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -71,7 +71,7 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_spect_n.txt', 'w') as file:
+    with open('test/data/symmetries_spect_n.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
@@ -89,7 +89,7 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_spect_k.txt', 'w') as file:
+    with open('test/data/symmetries_spect_k.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
@@ -107,14 +107,14 @@ def test_symmetries(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_spect_kn.txt', 'w') as file:
+    with open('test/data/symmetries_spect_kn.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries.pdf')
+    fig.savefig('test/plots/symmetries.pdf')
     plt.close(fig)
 
 
@@ -129,11 +129,11 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_DICT[num](hss)
 
-        axes[i].imshow(h)
+        axes[i].imshow(np.abs(h))
         w_sectors[f'({hss.n_tot})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decomposition_n.pdf')
+    fig.savefig('test/plots/decomposition_n.pdf')
     plt.close(fig)
 
     spect = {}
@@ -145,7 +145,7 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
                 spect[energy][0] += sector
                 spect[energy][1] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/decomposition_n_spect.txt', 'w') as file:
+    with open('test/data/decomposition_n_spect.txt', 'w') as file:
         for energy, (sector, degeneracy) in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
@@ -159,7 +159,7 @@ def test_decomposition_n(num: int, num_sites: int, n_max: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decomposition_n_spect.pdf')
+    fig.savefig('test/plots/decomposition_n_spect.pdf')
     plt.close(fig)
 
 
@@ -178,7 +178,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
         w_sectors[f'({hss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_k.pdf')
+    fig.savefig('test/plots/decompostion_k.pdf')
     plt.close(fig)
 
     spect = {}
@@ -190,7 +190,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
                 spect[energy][0] += sector
                 spect[energy][1] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/decomposition_k_spect.txt', 'w') as file:
+    with open('test/data/decomposition_k_spect.txt', 'w') as file:
         for energy, (sector, degeneracy) in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
@@ -204,7 +204,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_k_spect.pdf')
+    fig.savefig('test/plots/decompostion_k_spect.pdf')
     plt.close(fig)
 
 
@@ -224,7 +224,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
             w_sectors[f'({hsss.n_tot}|{hsss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompositon_kn.pdf')
+    fig.savefig('test/plots/decompositon_kn.pdf')
     plt.close(fig)
 
     spect = {}
@@ -236,7 +236,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
                 spect[energy][0] += sector
                 spect[energy][1] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/decomposition_kn_spect.txt', 'w') as file:
+    with open('test/data/decomposition_kn_spect.txt', 'w') as file:
         for energy, (sector, degeneracy) in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
@@ -250,7 +250,7 @@ def test_decomposition_kn(num: int, num_sites: int, n_max: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompositon_kn_spect.pdf')
+    fig.savefig('test/plots/decompositon_kn_spect.pdf')
     plt.close(fig)
 
 
@@ -262,7 +262,7 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
 
     hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 0].imshow(np.real(h))
+    axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -272,14 +272,14 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_k_spect_k=zero.txt', 'w') as file:
+    with open('test/data/symmetries_k_spect_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.T @ h @ s
-    axes[0, 1].imshow(np.real(h))
+    axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -289,14 +289,14 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_k_spect_pk_k=zero.txt', 'w') as file:
+    with open('test/data/symmetries_k_spect_pk_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 2].imshow(np.real(h))
+    axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -306,14 +306,14 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_k_spect_k=bragg.txt', 'w') as file:
+    with open('test/data/symmetries_k_spect_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.T @ h @ s
-    axes[0, 3].imshow(np.real(h))
+    axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -323,14 +323,14 @@ def test_symmetries_k(num: int, num_sites: int, n_max: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_k_spect_pk_k=bragg.txt', 'w') as file:
+    with open('test/data/symmetries_k_spect_pk_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries_k.pdf')
+    fig.savefig('test/plots/symmetries_k.pdf')
     plt.close(fig)
 
 
@@ -345,17 +345,17 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
 
-        axes[0, i].imshow(h)
+        axes[0, i].imshow(np.abs(h))
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='K', sym='PK', crystal_momentum=num_sites//2)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
 
-        axes[1, i].imshow(h)
+        axes[1, i].imshow(np.abs(h))
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pk.pdf')
+    fig.savefig('test/plots/decompostion_pk.pdf')
     plt.close(fig)
 
     for i, k in enumerate(('k=zero', 'k=bragg')):
@@ -368,7 +368,7 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
                     spect[energy][0] += sector
                     spect[energy][1] += 1
         spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-        with open(f'test/decomposition_pk_spect_{k}.txt', 'w') as file:
+        with open(f'test/data/decomposition_pk_spect_{k}.txt', 'w') as file:
             for energy, (sector, degeneracy) in spect.items():
                 file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
@@ -384,7 +384,7 @@ def test_decomposition_pk(num: int, num_sites: int, n_max: int):
         axes[i].hist(w[i], BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pk_spect.pdf')
+    fig.savefig('test/plots/decompostion_pk_spect.pdf')
     plt.close(fig)
 
 
@@ -396,7 +396,7 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
 
     hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 0].imshow(np.real(h))
+    axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -406,14 +406,14 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_kn_spect_k=zero.txt', 'w') as file:
+    with open('test/data/symmetries_kn_spect_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.conj().T @ h @ s
-    axes[0, 1].imshow(np.real(h))
+    axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -423,14 +423,14 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_kn_spect_pk_k=zero.txt', 'w') as file:
+    with open('test/data/symmetries_kn_spect_pk_k=zero.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[num](hs)
-    axes[0, 2].imshow(np.real(h))
+    axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -440,14 +440,14 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_kn_spect_k=bragg.txt', 'w') as file:
+    with open('test/data/symmetries_kn_spect_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
     h = s.conj().T @ h @ s
-    axes[0, 3].imshow(np.real(h))
+    axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     spect = {}
@@ -457,14 +457,14 @@ def test_symmetries_kn(num: int, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open('test/symmetries_kn_spect_pk_k=bragg.txt', 'w') as file:
+    with open('test/data/symmetries_kn_spect_pk_k=bragg.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig('test/symmetries_kn.pdf')
+    fig.savefig('test/plots/symmetries_kn.pdf')
     plt.close(fig)
 
 
@@ -479,17 +479,17 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
 
-        axes[0, i].imshow(h)
+        axes[0, i].imshow(np.abs(h))
         w_sectors_list[0][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, space='KN', sym='PKN', n_tot=n_tot, crystal_momentum=num_sites//2)
     for i, hss in enumerate(hs.subspaces):
         h = HAMILTONIAN_PK_DICT[num](hss)
 
-        axes[1, i].imshow(h)
+        axes[1, i].imshow(np.abs(h))
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pkn.pdf')
+    fig.savefig('test/plots/decompostion_pkn.pdf')
 
     for i, k in enumerate(('k=zero', 'k=bragg')):
         spect = {}
@@ -501,7 +501,7 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
                     spect[energy][0] += sector
                     spect[energy][1] += 1
         spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-        with open(f'test/decomposition_pkn_spect_{k}.txt', 'w') as file:
+        with open(f'test/data/decomposition_pkn_spect_{k}.txt', 'w') as file:
             for energy, (sector, degeneracy) in spect.items():
                 file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
@@ -517,7 +517,7 @@ def test_decomposition_pkn(num: int, num_sites: int, n_max: int, n_tot: int):
         axes[i].hist(w[i], BINS)
 
     fig.tight_layout()
-    fig.savefig('test/decompostion_pkn_spect.pdf')
+    fig.savefig('test/plots/decompostion_pkn_spect.pdf')
     plt.close(fig)
 
 

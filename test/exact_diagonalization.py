@@ -53,24 +53,34 @@ def plot_eigen_energies(dir_name: str, file_name: str, eigen_energies: np.ndarra
         plt.close()
 
 
+def test_decomposed(dir_name: str, file_name: str, reference_eigen_energies: np.ndarray = None, **kwargs):
+    bh.run_decomposed(dir_name, file_name, **kwargs)
+    eigen_energies: np.ndarray = bh.read_eigen_energies_decomposed(dir_name, file_name)
+    eigen_energies.sort()
+    print(eigen_energies[:10])
+    plot_dos('test/plots/', file_name, eigen_energies, reference_eigen_energies)
+    plot_eigen_energies('test/plots/', file_name, eigen_energies, reference_eigen_energies)
+    return eigen_energies
+
+
 def test(**kwargs):
     L = kwargs['L']
     file_name = ''.join(f'{key}={val}_' for key, val in kwargs.items())
-    bh.run_decomposed('test/data/', f'{file_name}space=full_sym=None', **kwargs)
-    bh.run_decomposed('test/data/', f'{file_name}space=full_sym=N', **kwargs, sym='N')
-    bh.run_decomposed('test/data/', f'{file_name}space=full_sym=K', **kwargs, sym='K')
-    bh.run_decomposed('test/data/', f'{file_name}space=full_sym=KN', **kwargs, sym='KN')
-    bh.run_decomposed('test/data/', f'{file_name}space=full_sym=PK', **kwargs, sym='PK')
-    bh.run_decomposed('test/data/', f'{file_name}space=full_sym=PKN', **kwargs, sym='PKN')
-    bh.run_decomposed('test/data/', f'{file_name}space=N_sym=None', **kwargs, space='N', N=L//2)
-    bh.run_decomposed('test/data/', f'{file_name}space=N_sym=KN', **kwargs, space='N', sym='KN', N=L//2)
-    bh.run_decomposed('test/data/', f'{file_name}space=N_sym=PKN', **kwargs, space='N', sym='PKN', N=L//2)
-    bh.run_decomposed('test/data/', f'{file_name}space=K_sym=None', **kwargs, space='K', K=0)
-    bh.run_decomposed('test/data/', f'{file_name}space=K_sym=PK', **kwargs, space='K', sym='PK', K=0)
-    bh.run_decomposed('test/data/', f'{file_name}space=KN_sym=None', **kwargs, space='KN', N=L//2, K=0)
-    bh.run_decomposed('test/data/', f'{file_name}space=KN_sym=PKN', **kwargs, space='KN', sym='PKN', N=L//2, K=0)
-    bh.run_decomposed('test/data/', f'{file_name}space=PK_sym=None', **kwargs, space='PK', K=0, P=1)
-    bh.run_decomposed('test/data/', f'{file_name}space=PKN_sym=None', **kwargs, space='PKN', sym='PKN', N=L//2, K=0, P=1)
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=full_sym=None', **kwargs)
+    test_decomposed('test/data/', f'{file_name}space=full_sym=N', reference_eigen_energies, **kwargs, sym='N')
+    test_decomposed('test/data/', f'{file_name}space=full_sym=K', reference_eigen_energies, **kwargs, sym='K')
+    test_decomposed('test/data/', f'{file_name}space=full_sym=KN', reference_eigen_energies, **kwargs, sym='KN')
+    test_decomposed('test/data/', f'{file_name}space=full_sym=PK', reference_eigen_energies, **kwargs, sym='PK')
+    test_decomposed('test/data/', f'{file_name}space=full_sym=PKN', reference_eigen_energies, **kwargs, sym='PKN')
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=N_sym=None', **kwargs, space='N', N=L//2)
+    test_decomposed('test/data/', f'{file_name}space=N_N={L//2}_sym=KN', reference_eigen_energies, **kwargs, space='N', sym='KN', N=L//2)
+    test_decomposed('test/data/', f'{file_name}space=N_N={L//2}_sym=PKN', reference_eigen_energies, **kwargs, space='N', sym='PKN', N=L//2)
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=K_K={0}sym=None', **kwargs, space='K', K=0)
+    test_decomposed('test/data/', f'{file_name}space=K_K={0}_sym=PK', reference_eigen_energies, **kwargs, space='K', sym='PK', K=0)
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=KN_N={L//2}_K={0}_sym=None', **kwargs, space='KN', N=L//2, K=0)
+    test_decomposed('test/data/', f'{file_name}space=KN_N={L//2}_K={0}_sym=PKN', reference_eigen_energies, **kwargs, space='KN', sym='PKN', N=L//2, K=0)
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=PK_K={0}_P={1}_sym=None', **kwargs, space='PK', K=0, P=1)
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=PKN_N={L//2}_K={0}_P={1}_sym=None', **kwargs, space='PKN', sym='PKN', N=L//2, K=0, P=1)
 
 
 if __name__ == '__main__':
