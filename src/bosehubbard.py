@@ -1623,7 +1623,11 @@ def read_eigen_energies_decomposed(
     with h5py.File(f'{dir_name}{file_name}.h5', 'r') as file:
         group = file['data']
         dim = group['dim'][()]
-        eigen_energies = np.empty(dim, dtype=float)
+        if 'representative_dim' in group['param']:
+            representative_dim = group['param/representative_dim']
+            eigen_energies = np.empty(representative_dim, dtype=float)
+        else:
+            eigen_energies = np.empty(dim, dtype=float)
         counter = [0]
         get_eigen_energies_decomposed(group, eigen_energies, counter)
         return eigen_energies
@@ -1638,9 +1642,15 @@ def read_eigen_states_decomposed(
         dim = group['dim'][()]
         basis = group['basis'][()]
         findstate = dict()
-        for a in range(dim):
-            findstate[tuple(basis[a])] = a
-        eigen_states = np.empty((dim, dim), dtype=complex)
+        if 'representative_dim' in group['param']:
+            representative_dim = group['param/representative_dim']
+            for a in range(representative_dim):
+                findstate[tuple(basis[a])] = a
+            eigen_states = np.empty((dim, representative_dim), dtype=complex)
+        else:
+            for a in range(dim):
+                findstate[tuple(basis[a])] = a
+            eigen_states = np.empty((dim, dim), dtype=complex)
         counter = [0]
         get_eigen_states_decomposed(group, eigen_states, findstate, counter, dim)
         return eigen_states
