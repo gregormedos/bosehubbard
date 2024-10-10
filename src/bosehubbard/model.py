@@ -42,6 +42,8 @@ class HilbertSpace:
         self.dim = None
         self.basis = None
         self.findstate = None
+        self.super_dim = None
+        self.super_basis = None
         self.n_tot = n_tot
         self.crystal_momentum = crystal_momentum
         self.translation_periods = None
@@ -51,75 +53,69 @@ class HilbertSpace:
         if space == 'full':
             self.dim = dim_full(num_sites, n_max)
             self.basis = gen_basis_full(num_sites, self.dim, n_max)
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
-        
+            self.super_dim = self.dim
+            self.super_basis = self.basis  # intentionally avoid copying
+
         elif space == 'N':
             self.dim = dim_nblock(num_sites, n_tot, n_max)
             self.basis = gen_basis_nblock(num_sites, n_tot, self.dim, n_max)
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
-            
+            self.super_dim = self.dim
+            self.super_basis = self.basis  # intentionally avoid copying
+
         elif space == 'K':
-            super_basis = gen_basis_full(num_sites, self.dim, n_max)
+            self.super_dim = dim_full(num_sites, n_max)
+            self.super_basis = gen_basis_full(num_sites, self.super_dim, n_max)
             (
                 self.basis,
                 self.translation_periods,
                 self.dim
-            ) = gen_representative_basis_kblock(super_basis, num_sites, crystal_momentum)
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
+            ) = gen_representative_basis_kblock(self.super_basis, num_sites, crystal_momentum)
 
         elif space == 'KN':
-            super_basis = gen_basis_nblock(num_sites, n_tot, self.dim, n_max)
+            self.super_dim = dim_nblock(num_sites, n_tot, n_max)
+            self.super_basis = gen_basis_nblock(num_sites, n_tot, self.super_dim, n_max)
             (
                 self.basis,
                 self.translation_periods,
                 self.dim
-            ) = gen_representative_basis_kblock(super_basis, num_sites, crystal_momentum)
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
+            ) = gen_representative_basis_kblock(self.super_basis, num_sites, crystal_momentum)
 
         elif space == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-            super_basis = gen_basis_full(num_sites, self.dim, n_max)
+            self.super_dim = dim_full(num_sites, n_max)
+            self.super_basis = gen_basis_full(num_sites, self.super_dim, n_max)
             (
                 self.basis,
                 self.translation_periods,
                 self.nums_translations_reflection,
                 self.dim
             ) = gen_representative_basis_pkblock(
-                super_basis,
+                self.super_basis,
                 num_sites,
                 crystal_momentum,
                 reflection_parity
             )
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
 
         elif space == 'PKN' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-            super_basis = gen_basis_nblock(num_sites, n_tot, self.dim, n_max)
+            self.super_dim = dim_nblock(num_sites, n_tot, n_max)
+            self.super_basis = gen_basis_nblock(num_sites, n_tot, self.super_dim, n_max)
             (
                 self.basis,
                 self.translation_periods,
                 self.nums_translations_reflection,
                 self.dim
             ) = gen_representative_basis_pkblock(
-                super_basis,
+                self.super_basis,
                 num_sites,
                 crystal_momentum,
                 reflection_parity
             )
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
 
         else:
             raise ValueError("Value of `space` must be in `{'full', 'N', 'K', 'KN', 'PK', 'PKN'}`")
+        
+        self.findstate = {}
+        for a in range(self.dim):
+            self.findstate[tuple(self.basis[a])] = a
 
     # Basis transformation
     def basis_transformation_n(self, mat: np.ndarray):
@@ -201,12 +197,6 @@ class HilbertSpace:
         return change_of_basis_mat
 
     def basis_transformation_pk(self, mat: np.ndarray):
-        if 'N' in self.space:
-            super_dim = dim_nblock(self.num_sites, self.n_tot, self.n_max)
-            super_basis = gen_basis_nblock(self.num_sites, self.n_tot, super_dim, self.n_max)
-        else:
-            super_dim = dim_full(self.num_sites, self.n_max)
-            super_basis = gen_basis_full(self.num_sites, super_dim, self.n_max)
         change_of_basis_mat = np.zeros(mat.shape, dtype=float)
         beginning_of_block = 0
         for p in (1, -1):
@@ -216,7 +206,7 @@ class HilbertSpace:
                 nums_translations_reflection_pk,
                 representative_dim_pk
             ) = gen_representative_basis_pkblock(
-                super_basis,
+                self.super_basis,
                 self.num_sites,
                 self.crystal_momentum,
                 p
@@ -630,13 +620,13 @@ class DecomposedHilbertSpace(HilbertSpace):
         self.dim = None
         self.basis = None
         self.findstate = None
+        self.super_dim = None
+        self.super_basis = None
         self.n_tot = n_tot
         self.crystal_momentum = crystal_momentum
         self.translation_periods = None
         self.reflection_parity = reflection_parity
         self.nums_translations_reflection = None
-        self.super_dim = super_dim
-        self.super_basis = super_basis
         self.subspaces = None
 
         if super_dim is None or super_basis is None:
@@ -648,47 +638,44 @@ class DecomposedHilbertSpace(HilbertSpace):
                 crystal_momentum,
                 reflection_parity
             )
-            self.super_dim = self.dim
-            self.super_basis = self.basis  # intentionally avoiding copying
         
-        elif space == 'full':
-            self.dim = super_dim
-            self.super_basis = super_basis
-        
-        elif space == 'N':
-            self.basis, self.dim = gen_basis_nblock_from_full(super_basis, n_tot)
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
-        
-        elif space in {'K', 'KN'}:
-            (
-                self.basis,
-                self.translation_periods,
-                self.dim
-            ) = gen_representative_basis_kblock(super_basis, num_sites, crystal_momentum)
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
-
-        elif space in {'PK', 'PKN'} and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
-            (
-                self.basis,
-                self.translation_periods,
-                self.nums_translations_reflection,
-                self.dim
-            ) = gen_representative_basis_pkblock(
-                self.basis,
-                num_sites,
-                crystal_momentum,
-                reflection_parity
-            )
-            self.findstate = {}
-            for a in range(self.dim):
-                self.findstate[tuple(self.basis[a])] = a
-
         else:
-            raise ValueError("Value of `space` must be in `{'full', 'N', 'K', 'KN', 'PK', 'PKN'}`")
+            self.super_dim = super_dim
+            self.super_basis = super_basis  # intentionally avoiding copying
+
+            if space == 'full':        
+                self.dim = super_dim
+                self.basis = super_basis  # intentionally avoiding copying
+
+            elif space == 'N':
+                self.basis, self.dim = gen_basis_nblock_from_full(super_basis, n_tot)
+            
+            elif space in {'K', 'KN'}:
+                (
+                    self.basis,
+                    self.translation_periods,
+                    self.dim
+                ) = gen_representative_basis_kblock(super_basis, num_sites, crystal_momentum)
+
+            elif space in {'PK', 'PKN'} and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
+                (
+                    self.basis,
+                    self.translation_periods,
+                    self.nums_translations_reflection,
+                    self.dim
+                ) = gen_representative_basis_pkblock(
+                    super_basis,
+                    num_sites,
+                    crystal_momentum,
+                    reflection_parity
+                )
+
+            else:
+                raise ValueError("Value of `space` must be in `{'full', 'N', 'K', 'KN', 'PK', 'PKN'}`")
+            
+            self.findstate = {}
+            for a in range(self.dim):
+                self.findstate[tuple(self.basis[a])] = a
 
         if space == 'full':
             if sym in {'N', 'KN', 'PKN'}:
@@ -701,9 +688,8 @@ class DecomposedHilbertSpace(HilbertSpace):
                             'N',
                             sym,
                             n_tot=n,
-                            super_basis=self.basis,  # intentionally avoiding copying
-                            super_findstate=self.findstate,
-                            super_dim=self.dim
+                            super_dim=self.dim,
+                            super_basis=self.basis  # intentionally avoiding copying
                         )
                     )
             elif sym in {'K', 'PK'}:
@@ -716,9 +702,8 @@ class DecomposedHilbertSpace(HilbertSpace):
                             'K',
                             sym,
                             crystal_momentum=k,
-                            super_basis=self.basis,  # intentionally avoiding copying
-                            super_findstate=self.findstate,
-                            super_dim=self.dim
+                            super_dim=self.dim,
+                            super_basis=self.basis  # intentionally avoiding copying
                         )
                     )
 
@@ -734,9 +719,8 @@ class DecomposedHilbertSpace(HilbertSpace):
                             sym,
                             n_tot=n_tot,
                             crystal_momentum=k,
-                            super_basis=self.basis,  # intentionally avoiding copying
-                            super_findstate=self.findstate,
-                            super_dim=self.dim
+                            super_dim=self.dim,
+                            super_basis=self.basis  # intentionally avoiding copying
                         )
                     )
 
@@ -752,9 +736,8 @@ class DecomposedHilbertSpace(HilbertSpace):
                             sym,
                             crystal_momentum=crystal_momentum,
                             reflection_parity=p,
-                            super_basis=self.basis,  # intentionally avoiding copying
-                            super_findstate=self.findstate,
-                            super_dim=self.dim
+                            super_dim=self.super_dim,
+                            super_basis=self.super_basis  # intentionally avoiding copying
                         )
                     )
 
@@ -771,8 +754,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                             n_tot=n_tot,
                             crystal_momentum=crystal_momentum,
                             reflection_parity=p,
-                            super_basis=self.basis,  # intentionally avoiding copying
-                            super_findstate=self.findstate,
-                            super_dim=self.dim
+                            super_dim=super_dim,
+                            super_basis=super_basis  # intentionally avoiding copying
                         )
                     )
