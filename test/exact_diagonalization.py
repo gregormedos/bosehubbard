@@ -7,8 +7,11 @@ plt.rcParams.update({'text.usetex': False,
 
 
 def main():
-    test(L=6, M=2, terms=(('t', 1.0), ('U', 1.0)))
-    test(L=6, M=2, terms=(('t', 1.0), ('U', 1.0), ('V1', 1.0), ('V2', 1.0)))
+    test('full', L=6, M=1, terms=(('t', 1.0), ('U', 1.0)))
+    test('full', L=6, M=1, terms=(('t', 1.0), ('U', 1.0), ('V1', 1.0), ('V2', 1.0)))
+    test('full', L=6, M=2, terms=(('t', 1.0), ('U', 1.0)))
+    test('full', L=6, M=2, terms=(('t', 1.0), ('U', 1.0), ('V1', 1.0), ('V2', 1.0)))
+    test('canonical', L=6, M=6, terms=(('t', 1.0), ('U', 1.0)))
 
 
 def plot_dos(dir_name: str, file_name: str, eigen_energies: np.ndarray, reference_eigen_energies: np.ndarray = None):
@@ -63,19 +66,20 @@ def test_decomposed(dir_name: str, file_name: str, reference_eigen_energies: np.
     return eigen_energies
 
 
-def test(**kwargs):
+def test(symmetry, **kwargs):
     L = kwargs['L']
     file_name = ''.join(f'{key}={val}_' for key, val in kwargs.items())
-    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=full_sym=None', **kwargs)
-    test_decomposed('test/data/', f'{file_name}space=full_sym=N', reference_eigen_energies, **kwargs, sym='N')
-    test_decomposed('test/data/', f'{file_name}space=full_sym=K', reference_eigen_energies, **kwargs, sym='K')
-    test_decomposed('test/data/', f'{file_name}space=full_sym=KN', reference_eigen_energies, **kwargs, sym='KN')
-    test_decomposed('test/data/', f'{file_name}space=full_sym=PK', reference_eigen_energies, **kwargs, sym='PK')
-    test_decomposed('test/data/', f'{file_name}space=full_sym=PKN', reference_eigen_energies, **kwargs, sym='PKN')
+    if symmetry == 'full':
+        reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=full_sym=None', **kwargs)
+        test_decomposed('test/data/', f'{file_name}space=full_sym=N', reference_eigen_energies, **kwargs, sym='N')
+        test_decomposed('test/data/', f'{file_name}space=full_sym=K', reference_eigen_energies, **kwargs, sym='K')
+        test_decomposed('test/data/', f'{file_name}space=full_sym=KN', reference_eigen_energies, **kwargs, sym='KN')
+        test_decomposed('test/data/', f'{file_name}space=full_sym=PK', reference_eigen_energies, **kwargs, sym='PK')
+        test_decomposed('test/data/', f'{file_name}space=full_sym=PKN', reference_eigen_energies, **kwargs, sym='PKN')
     reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=N_sym=None', **kwargs, space='N', N=L//2)
     test_decomposed('test/data/', f'{file_name}space=N_N={L//2}_sym=KN', reference_eigen_energies, **kwargs, space='N', sym='KN', N=L//2)
     test_decomposed('test/data/', f'{file_name}space=N_N={L//2}_sym=PKN', reference_eigen_energies, **kwargs, space='N', sym='PKN', N=L//2)
-    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=K_K={0}sym=None', **kwargs, space='K', K=0)
+    reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=K_K={0}_sym=None', **kwargs, space='K', K=0)
     test_decomposed('test/data/', f'{file_name}space=K_K={0}_sym=PK', reference_eigen_energies, **kwargs, space='K', sym='PK', K=0)
     reference_eigen_energies = test_decomposed('test/data/', f'{file_name}space=KN_N={L//2}_K={0}_sym=None', **kwargs, space='KN', N=L//2, K=0)
     test_decomposed('test/data/', f'{file_name}space=KN_N={L//2}_K={0}_sym=PKN', reference_eigen_energies, **kwargs, space='KN', sym='PKN', N=L//2, K=0)

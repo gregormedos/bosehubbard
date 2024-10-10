@@ -6,25 +6,25 @@ np.set_printoptions(linewidth=100)
 
 def print_basis(hs: bh.HilbertSpace):
     if 'K' in hs.space:
-        print(f"Representative basis:\n{hs.representative_basis}")
-        print(f"Representative dim: {hs.representative_dim}")
         print(f"Translation periods: {hs.translation_periods}")
         if 'P' in hs.space:
             print(f"Number of translations after reflection: {hs.nums_translations_reflection}")
     else:
         print(f"Basis:\n{hs.basis}")
+        print(f"Super basis:\n{hs.super_basis}")
         print(f"Dim: {hs.dim}")
+        print(f"Super dim: {hs.super_dim}")
 
 
 def test1():
     hs = bh.HilbertSpace(6, 1, space='PKN', n_tot=3, crystal_momentum=0, reflection_parity=1)
     print_basis(hs)
 
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=float)
+    mat = np.zeros((hs.dim, hs.dim), dtype=float)
     d = (1, -1)
     r = (-1, 1)
-    for a in range(hs.representative_dim):
-        representative_state_a = hs.representative_basis[a]
+    for a in range(hs.dim):
+        representative_state_a = hs.basis[a]
         translation_period_a = hs.translation_periods[a]
         num_translations_reflection_a = hs.nums_translations_reflection[a]
         if num_translations_reflection_a >= 0:
@@ -48,8 +48,8 @@ def test1():
                             num_translations_b,
                             num_reflections_b
                         ) = bh.fock_representative_reflection(state_b, hs.num_sites)
-                        if tuple(representative_state_b) in hs.representative_findstate:
-                            b = hs.representative_findstate[tuple(representative_state_b)]
+                        if tuple(representative_state_b) in hs.findstate:
+                            b = hs.findstate[tuple(representative_state_b)]
                             translation_period_b = hs.translation_periods[b]
                             num_translations_reflection_b = hs.nums_translations_reflection[b]
                             if num_translations_reflection_b >= 0:
@@ -71,10 +71,10 @@ def test2():
     hs = bh.HilbertSpace(4, 1, space='PK', crystal_momentum=0, reflection_parity=1)
     print_basis(hs)
 
-    mat = np.zeros((hs.representative_dim, hs.representative_dim), dtype=float)
+    mat = np.zeros((hs.dim, hs.dim), dtype=float)
     for r in (-1, 1):
-        for a in range(hs.representative_dim):
-            representative_state_a = hs.representative_basis[a]
+        for a in range(hs.dim):
+            representative_state_a = hs.basis[a]
             translation_period_a = hs.translation_periods[a]
             num_translations_reflection_a = hs.nums_translations_reflection[a]
             if num_translations_reflection_a >= 0:
@@ -91,8 +91,8 @@ def test2():
                         num_translations_b,
                         num_reflections_b
                     ) = bh.fock_representative_reflection(state_b, hs.num_sites)
-                    if tuple(representative_state_b) in hs.representative_findstate:
-                        b = hs.representative_findstate[tuple(representative_state_b)]
+                    if tuple(representative_state_b) in hs.findstate:
+                        b = hs.findstate[tuple(representative_state_b)]
                         translation_period_b = hs.translation_periods[b]
                         num_translations_reflection_b = hs.nums_translations_reflection[b]
                         if num_translations_reflection_b >= 0:
@@ -111,7 +111,7 @@ def test2():
 
 
 def main():
-#    test1()
+    test1()
     test2()
 
 
