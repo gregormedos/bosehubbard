@@ -69,11 +69,7 @@ def read_eigen_energies_decomposed(
     with h5py.File(f'{dir_name}{file_name}.h5', 'r') as file:
         group = file['data']
         dim = group['dim'][()]
-        if 'representative_dim' in group['param']:
-            representative_dim = group['param/representative_dim']
-            eigen_energies = np.empty(representative_dim, dtype=float)
-        else:
-            eigen_energies = np.empty(dim, dtype=float)
+        eigen_energies = np.empty(dim, dtype=float)
         counter = [0]
         get_eigen_energies_decomposed(group, eigen_energies, counter)
         return eigen_energies
@@ -88,15 +84,9 @@ def read_eigen_states_decomposed(
         dim = group['dim'][()]
         basis = group['basis'][()]
         findstate = dict()
-        if 'representative_dim' in group['param']:
-            representative_dim = group['param/representative_dim']
-            for a in range(representative_dim):
-                findstate[tuple(basis[a])] = a
-            eigen_states = np.empty((dim, representative_dim), dtype=complex)
-        else:
-            for a in range(dim):
-                findstate[tuple(basis[a])] = a
-            eigen_states = np.empty((dim, dim), dtype=complex)
+        for a in range(dim):
+            findstate[tuple(basis[a])] = a
+        eigen_states = np.empty((dim, dim), dtype=complex)
         counter = [0]
         get_eigen_states_decomposed(group, eigen_states, findstate, counter, dim)
         return eigen_states
@@ -187,15 +177,15 @@ def exact_diagonalization_decomposed(
     param.create_dataset('space', data=hs.space)
     group.create_dataset('dim', data=hs.dim)
     group.create_dataset('basis', data=hs.basis)
+    group.create_dataset('super_dim', data=hs.super_dim)
+    group.create_dataset('super_basis', data=hs.super_dim)
     if hs.sym is not None:
         param.create_dataset('sym', data=hs.sym)
     if hs.n_tot is not None:
         param.create_dataset('n_tot', data=hs.n_tot)
     if hs.crystal_momentum is not None:
         param.create_dataset('crystal_momentum', data=hs.crystal_momentum)
-        group.create_dataset('representative_basis', data=hs.representative_basis)
         group.create_dataset('translation_periods', data=hs.translation_periods)
-        group.create_dataset('representative_dim', data=hs.representative_dim)
     if hs.reflection_parity is not None:
         param.create_dataset('reflection_parity', data=hs.reflection_parity)
         group.create_dataset('num_translations_reflection', data=hs.nums_translations_reflection)
@@ -238,13 +228,13 @@ def exact_diagonalization(
     param.create_dataset('space', data=hs.space)
     group.create_dataset('dim', data=hs.dim)
     group.create_dataset('basis', data=hs.basis)
+    group.create_dataset('super_dim', data=hs.super_dim)
+    group.create_dataset('super_basis', data=hs.super_basis)
     if hs.n_tot is not None:
         param.create_dataset('n_tot', data=hs.n_tot)
     if hs.crystal_momentum is not None:
         param.create_dataset('crystal_momentum', data=hs.crystal_momentum)
-        group.create_dataset('representative_basis', data=hs.representative_basis)
         group.create_dataset('translation_periods', data=hs.translation_periods)
-        group.create_dataset('representative_dim', data=hs.representative_dim)
     if hs.reflection_parity is not None:
         param.create_dataset('reflection_parity', data=hs.reflection_parity)
         group.create_dataset('num_translations_reflection', data=hs.nums_translations_reflection)
@@ -270,17 +260,10 @@ def get_eigen_energies_decomposed(group: h5py.Group, eigen_energies: np.ndarray,
             get_eigen_energies_decomposed(group[f'subspaces/{subspace_name}'], eigen_energies, counter)
     else:
         j = counter[0]
-        subspace = group['param/space'][()].decode()
-        if 'K' in subspace:
-            representative_dim = group['representative_dim'][()]
-            counter[0] += representative_dim
-            eigen_energies_sector = group['spectrum/eigen_energies'][()]
-            eigen_energies[j: j + representative_dim] = eigen_energies_sector
-        else:
-            dim_sector = group['dim'][()]
-            counter[0] += dim_sector
-            eigen_energies_sector = group['spectrum/eigen_energies'][()]
-            eigen_energies[j: j + dim_sector] = eigen_energies_sector
+        dim_sector = group['dim'][()]
+        counter[0] += dim_sector
+        eigen_energies_sector = group['spectrum/eigen_energies'][()]
+        eigen_energies[j: j + dim_sector] = eigen_energies_sector
 
 
 def get_eigen_states_decomposed(group: h5py.Group, eigen_states: np.ndarray, findstate: dict, counter: list, dim: int):
@@ -293,9 +276,9 @@ def get_eigen_states_decomposed(group: h5py.Group, eigen_states: np.ndarray, fin
         if subspace in {'KN', 'K'}:
             num_sites = group['param/num_sites'][()]
             crystal_momentum = group['param/crystal_momentum'][()]
-            representative_basis = group['representative_basis'][()]
+            representative_basis = group['basis'][()]
             translation_periods = group['translation_periods'][()]
-            representative_dim = group['representative_dim'][()]
+            representative_dim = group['dim'][()]
             counter[0] += representative_dim
             representative_eigen_states = group['spectrum/eigen_states'][()]
             eigen_states_sector = np.zeros((dim, representative_dim), dtype=complex)
@@ -314,10 +297,10 @@ def get_eigen_states_decomposed(group: h5py.Group, eigen_states: np.ndarray, fin
             num_sites = group['param/num_sites'][()]
             crystal_momentum = group['param/crystal_momentum'][()]
             reflection_parity = group['param/reflection_parity'][()]
-            representative_basis = group['representative_basis'][()]
+            representative_basis = group['basis'][()]
             translation_periods = group['translation_periods'][()]
             num_translations_reflection = group['num_translations_reflection'][()]
-            representative_dim = group['representative_dim'][()]
+            representative_dim = group['dim'][()]
             counter[0] += representative_dim
             representative_eigen_states = group['spectrum/eigen_states'][()]
             eigen_states_sector = np.zeros((dim, representative_dim), dtype=complex)
@@ -351,17 +334,10 @@ def get_mid_spectrum_eigen_energies_decomposed(group: h5py.Group, eigen_energies
         for subspace_name in group['subspaces']:
             get_mid_spectrum_eigen_energies_decomposed(group[f'subspaces/{subspace_name}'], eigen_energies, dim_sectors, num)
     else:
-        subspace = group['param/space'][()].decode()
-        if 'K' in subspace:
-            representative_dim = group['representative_dim'][()]
-            eigen_energies_sector = group['spectrum/eigen_energies'][(representative_dim - num) // 2: (representative_dim + num) // 2]
-            eigen_energies.append(eigen_energies_sector)
-            dim_sectors.append(representative_dim)
-        else:
-            dim_sector = group['dim'][()]
-            eigen_energies_sector = group['spectrum/eigen_energies'][(dim_sector - num) // 2: (dim_sector + num) // 2]
-            eigen_energies.append(eigen_energies_sector)
-            dim_sectors.append(dim_sector)
+        dim_sector = group['dim'][()]
+        eigen_energies_sector = group['spectrum/eigen_energies'][(dim_sector - num) // 2: (dim_sector + num) // 2]
+        eigen_energies.append(eigen_energies_sector)
+        dim_sectors.append(dim_sector)
 
 
 def get_mid_spectrum_eigen_states_decomposed(group: h5py.Group, eigen_states: list, dim_sectors: list, findstate: dict, dim: int, num: int):
@@ -373,9 +349,9 @@ def get_mid_spectrum_eigen_states_decomposed(group: h5py.Group, eigen_states: li
         if subspace in {'KN', 'K'}:
             num_sites = group['param/num_sites'][()]
             crystal_momentum = group['param/crystal_momentum'][()]
-            representative_basis = group['representative_basis'][()]
+            representative_basis = group['basis'][()]
             translation_periods = group['translation_periods'][()]
-            representative_dim = group['representative_dim'][()]
+            representative_dim = group['dim'][()]
             representative_eigen_states = group['spectrum/eigen_states'][:, (representative_dim - num) // 2: (representative_dim + num) // 2]
             eigen_states_sector = np.zeros((dim, num), dtype=complex)
             for a in range(representative_dim):
@@ -394,10 +370,10 @@ def get_mid_spectrum_eigen_states_decomposed(group: h5py.Group, eigen_states: li
             num_sites = group['param/num_sites'][()]
             crystal_momentum = group['param/crystal_momentum'][()]
             reflection_parity = group['param/reflection_parity'][()]
-            representative_basis = group['representative_basis'][()]
+            representative_basis = group['basis'][()]
             translation_periods = group['translation_periods'][()]
             num_translations_reflection = group['num_translations_reflection'][()]
-            representative_dim = group['representative_dim'][()]
+            representative_dim = group['dim'][()]
             representative_eigen_states = group['spectrum/eigen_states'][:, (representative_dim - num) // 2: (representative_dim + num) // 2]
             eigen_states_sector = np.zeros((dim, num), dtype=complex)
             for a in range(representative_dim):
@@ -433,17 +409,17 @@ def get_eigen_energies(group: h5py.Group):
 
 def get_eigen_states(group: h5py.Group):
     space = group['param/space'][()].decode()
-    dim = group['dim'][()]
-    basis = group['basis'][()]
+    dim = group['super_dim'][()]
+    basis = group['super_basis'][()]
     findstate = dict()
     for a in range(dim):
         findstate[tuple(basis[a])] = a
     if space in {'KN', 'K'}:
         num_sites = group['param/num_sites'][()]
         crystal_momentum = group['param/crystal_momentum'][()]
-        representative_basis = group['representative_basis'][()]
+        representative_basis = group['basis'][()]
         translation_periods = group['translation_periods'][()]
-        representative_dim = group['representative_dim'][()]
+        representative_dim = group['dim'][()]
         representative_eigen_states = group['spectrum/eigen_states'][()]
         if (crystal_momentum == 0) or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2):
             dtype = float
@@ -467,10 +443,10 @@ def get_eigen_states(group: h5py.Group):
         num_sites = group['param/num_sites'][()]
         crystal_momentum = group['param/crystal_momentum'][()]
         reflection_parity = group['param/reflection_parity'][()]
-        representative_basis = group['representative_basis'][()]
+        representative_basis = group['basis'][()]
         translation_periods = group['translation_periods'][()]
         num_translations_reflection = group['num_translations_reflection'][()]
-        representative_dim = group['representative_dim'][()]
+        representative_dim = group['dim'][()]
         representative_eigen_states = group['spectrum/eigen_states'][()]
         if (crystal_momentum == 0) or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2):
             dtype = float
@@ -502,29 +478,24 @@ def get_eigen_states(group: h5py.Group):
 
 
 def get_mid_spectrum_eigen_energies(group: h5py.Group, num: int):
-    space = group['param/space'][()].decode()
-    if 'K' in space:
-        representative_dim = group['representative_dim'][()]
-        eigen_energies = group['spectrum/eigen_energies'][(representative_dim - num) // 2: (representative_dim + num) // 2]
-    else:
-        dim = group['dim'][()]
-        eigen_energies = group['spectrum/eigen_energies'][(dim - num) // 2: (dim + num) // 2]
+    dim = group['dim'][()]
+    eigen_energies = group['spectrum/eigen_energies'][(dim - num) // 2: (dim + num) // 2]
     return eigen_energies
 
 
 def get_mid_spectrum_eigen_states(group: h5py.Group, num: int):
     space = group['param/space'][()].decode()
-    dim = group['dim'][()]
-    basis = group['basis'][()]
+    dim = group['super_dim'][()]
+    basis = group['super_basis'][()]
     findstate = dict()
     for a in range(dim):
         findstate[tuple(basis[a])] = a
     if space in {'KN', 'K'}:
         num_sites = group['param/num_sites'][()]
         crystal_momentum = group['param/crystal_momentum'][()]
-        representative_basis = group['representative_basis'][()]
+        representative_basis = group['basis'][()]
         translation_periods = group['translation_periods'][()]
-        representative_dim = group['representative_dim'][()]
+        representative_dim = group['dim'][()]
         representative_eigen_states = group['spectrum/eigen_states'][:, (representative_dim - num) // 2: (representative_dim + num) // 2]
         if (crystal_momentum == 0) or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2):
             dtype = float
@@ -548,10 +519,10 @@ def get_mid_spectrum_eigen_states(group: h5py.Group, num: int):
         num_sites = group['param/num_sites'][()]
         crystal_momentum = group['param/crystal_momentum'][()]
         reflection_parity = group['param/reflection_parity'][()]
-        representative_basis = group['representative_basis'][()]
+        representative_basis = group['basis'][()]
         translation_periods = group['translation_periods'][()]
         num_translations_reflection = group['num_translations_reflection'][()]
-        representative_dim = group['representative_dim'][()]
+        representative_dim = group['dim'][()]
         representative_eigen_states = group['spectrum/eigen_states'][:, (representative_dim - num) // 2: (representative_dim + num) // 2]
         if (crystal_momentum == 0) or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2):
             dtype = float
