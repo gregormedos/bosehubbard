@@ -147,3 +147,6 @@ dmypy.json
 # NumPy files
 *.npy
 *.npz
+
+# macOS
+.DS_store
