@@ -44,6 +44,7 @@ class HilbertSpace:
         self.findstate = None
         self.super_dim = None
         self.super_basis = None
+        self.super_findstate = None
         self.n_tot = n_tot
         self.crystal_momentum = crystal_momentum
         self.translation_periods = None
@@ -116,6 +117,10 @@ class HilbertSpace:
         self.findstate = {}
         for a in range(self.dim):
             self.findstate[tuple(self.basis[a])] = a
+        self.super_findstate = {}
+        for a in range(self.super_dim):
+            self.super_findstate[tuple(self.super_basis[a])] = a
+
 
     # Basis transformation
     def basis_transformation_n(self, mat: np.ndarray):
@@ -238,15 +243,6 @@ class HilbertSpace:
         for a in range(self.dim):
             state_a = self.basis[a]
             mat[a, a] = 0.5 * np.sum(state_a * (state_a - 1))
-
-        return mat
-
-    # K-block Coulomb interaction Hamiltonian
-    def op_hamiltonian_interaction_k(self):
-        mat = np.zeros((self.dim, self.dim), dtype=float)
-        for a in range(self.dim):
-            representative_state_a = self.basis[a]
-            mat[a, a] = 0.5 * np.sum(representative_state_a * (representative_state_a - 1))
 
         return mat
 
@@ -612,6 +608,7 @@ class DecomposedHilbertSpace(HilbertSpace):
             reflection_parity: int = None,
             super_dim: int = None,
             super_basis: np.ndarray = None,
+            super_findstate: dict = None,
     ):
         self.num_sites = num_sites
         self.n_max = n_max
@@ -622,6 +619,7 @@ class DecomposedHilbertSpace(HilbertSpace):
         self.findstate = None
         self.super_dim = None
         self.super_basis = None
+        self.super_findstate = None
         self.n_tot = n_tot
         self.crystal_momentum = crystal_momentum
         self.translation_periods = None
@@ -629,7 +627,7 @@ class DecomposedHilbertSpace(HilbertSpace):
         self.nums_translations_reflection = None
         self.subspaces = None
 
-        if super_dim is None or super_basis is None:
+        if super_dim is None or super_basis is None or super_findstate is None:
             super().__init__(
                 num_sites,
                 n_max,
@@ -642,14 +640,15 @@ class DecomposedHilbertSpace(HilbertSpace):
         else:
             self.super_dim = super_dim
             self.super_basis = super_basis  # intentionally avoiding copying
+            self.super_findstate = super_findstate
 
             if space == 'full':        
-                self.dim = super_dim
-                self.basis = super_basis  # intentionally avoiding copying
+                self.dim = dim_full(num_sites, n_max)
+                self.basis = gen_basis_full(num_sites, self.dim, n_max)
 
             elif space == 'N':
                 self.basis, self.dim = gen_basis_nblock_from_full(super_basis, n_tot)
-            
+
             elif space in {'K', 'KN'}:
                 (
                     self.basis,
@@ -688,8 +687,9 @@ class DecomposedHilbertSpace(HilbertSpace):
                             'N',
                             sym,
                             n_tot=n,
-                            super_dim=self.dim,
-                            super_basis=self.basis  # intentionally avoiding copying
+                            super_dim=None,  # N-block has smaller super_dim
+                            super_basis=None,  # intentionally avoiding copying
+                            super_findstate=None
                         )
                     )
             elif sym in {'K', 'PK'}:
@@ -702,8 +702,9 @@ class DecomposedHilbertSpace(HilbertSpace):
                             'K',
                             sym,
                             crystal_momentum=k,
-                            super_dim=self.dim,
-                            super_basis=self.basis  # intentionally avoiding copying
+                            super_dim=self.super_dim,  # K-block has identical super_dim
+                            super_basis=self.super_basis,  # intentionally avoiding copying
+                            super_findstate=self.super_findstate
                         )
                     )
 
@@ -719,8 +720,9 @@ class DecomposedHilbertSpace(HilbertSpace):
                             sym,
                             n_tot=n_tot,
                             crystal_momentum=k,
-                            super_dim=self.dim,
-                            super_basis=self.basis  # intentionally avoiding copying
+                            super_dim=self.super_dim,  # K-block has identical super_dim
+                            super_basis=self.super_basis,  # intentionally avoiding copying
+                            super_findstate=self.super_findstate
                         )
                     )
 
@@ -736,8 +738,9 @@ class DecomposedHilbertSpace(HilbertSpace):
                             sym,
                             crystal_momentum=crystal_momentum,
                             reflection_parity=p,
-                            super_dim=self.super_dim,
-                            super_basis=self.super_basis  # intentionally avoiding copying
+                            super_dim=self.super_dim,  # P-block has identical super_dim
+                            super_basis=self.super_basis,  # intentionally avoiding copying
+                            super_findstate=self.super_findstate
                         )
                     )
 
@@ -754,7 +757,8 @@ class DecomposedHilbertSpace(HilbertSpace):
                             n_tot=n_tot,
                             crystal_momentum=crystal_momentum,
                             reflection_parity=p,
-                            super_dim=super_dim,
-                            super_basis=super_basis  # intentionally avoiding copying
+                            super_dim=self.super_dim,  # P-block has identical super_dim
+                            super_basis=self.super_basis,  # intentionally avoiding copying
+                            super_findstate=self.super_findstate
                         )
                     )

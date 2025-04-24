@@ -28,4 +28,3 @@ from bosehubbard.dim import *
 from bosehubbard.fock import *
 from bosehubbard.basis import *
 from bosehubbard.model import *
-from bosehubbard.spectrum import *
