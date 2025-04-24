@@ -210,7 +210,7 @@ def test_decomposition_k(num: int, num_sites: int, n_max: int):
 
 def test_decomposition_kn(num: int, num_sites: int, n_max: int):
     hs = bh.DecomposedHilbertSpace(num_sites, n_max, sym='KN')
-    fig, axes = plt.subplots(num_sites + 1, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, (num_sites + 1) * 2.5))
+    fig, axes = plt.subplots(num_sites, len(hs.subspaces), figsize=(len(hs.subspaces) * 2.5, num_sites * 2.5))
     for axis in axes.flat:
         axis.set_xticks([])
         axis.set_yticks([])

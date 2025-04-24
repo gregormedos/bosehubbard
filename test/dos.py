@@ -20,7 +20,7 @@ def PKN_sector(L, M, N, K, P):
         w = np.load(file_name)
     else:
         hs = bh.HilbertSpace(L, M, 'PKN', N, K, P)
-        h = hs.op_hamiltonian_tunnel_k() + hs.op_hamiltonian_interaction_k()
+        h = hs.op_hamiltonian_tunnel_pk() + hs.op_hamiltonian_interaction()
         w = np.linalg.eigvalsh(h)
         np.save(file_name, w)
     bins = 500
@@ -33,7 +33,7 @@ def PKN_sector(L, M, N, K, P):
     window2 = w[mid2 - mid_spectrum_states // 2: mid2 + mid_spectrum_states // 2]
     plt.figure()
     plt.xlabel('$E$')
-    plt.ylabel('DOES($E$)')
+    plt.ylabel('DOS($E$)')
     plt.hist(w, bins, alpha=0.7)
     plt.hist(window, round((np.max(window) - np.min(window)) / bin_size), alpha=0.7)
     plt.hist(window2, round((np.max(window2) - np.min(window2)) / bin_size), alpha=0.7)

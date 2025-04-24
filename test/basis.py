@@ -1,6 +1,5 @@
 import numpy as np
 import bosehubbard as bh
-import matplotlib.pyplot as plt
 
 
 def print_basis(hs: bh.HilbertSpace):
