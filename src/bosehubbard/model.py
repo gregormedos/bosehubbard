@@ -236,6 +236,16 @@ class HilbertSpace:
             beginning_of_block += representative_dim_pk
 
         return change_of_basis_mat
+    
+    # Disordered potential
+    def op_potential_disorder(self):
+        disorder = 2.0 * np.random.standard_normal(self.num_sites) - 1.0
+        mat = np.zeros((self.dim, self.dim), dtype=float)
+        for a in range(self.dim):
+            state_a = self.basis[a]
+            mat[a, a] = 0.5 * np.sum(disorder * state_a)
+
+        return mat
 
     # Coulomb interaction Hamiltonian
     def op_hamiltonian_interaction(self):
