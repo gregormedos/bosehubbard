@@ -10,27 +10,29 @@ HAMILTONIAN_DICT = {
     'PK': {
         't': bh.HilbertSpace.op_hamiltonian_tunnel_pk,
         'U': bh.HilbertSpace.op_hamiltonian_interaction,
-        'V1': bh.HilbertSpace.op_hamiltonian_annihilate_create_pk,
-        'V2': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pk
+        'g1': bh.HilbertSpace.op_hamiltonian_annihilate_create_pk,
+        'g2': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pk
     },
     'K': {
         't': bh.HilbertSpace.op_hamiltonian_tunnel_k,
         'U': bh.HilbertSpace.op_hamiltonian_interaction,
-        'V1': bh.HilbertSpace.op_hamiltonian_annihilate_create_k,
-        'V2': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_k
+        'g1': bh.HilbertSpace.op_hamiltonian_annihilate_create_k,
+        'g2': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_k
     },
     'None': {
         't': bh.HilbertSpace.op_hamiltonian_tunnel_pbc,
         'U': bh.HilbertSpace.op_hamiltonian_interaction,
-        'V1': bh.HilbertSpace.op_hamiltonian_annihilate_create,
-        'V2': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pbc
+        'g1': bh.HilbertSpace.op_hamiltonian_annihilate_create,
+        'g2': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pbc
     }
 }
 
 
 def main():
     test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0})
-    test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'V1': 1.0, 'V2': 1.0})
+    test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g1': 1.0})
+    test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g2': 1.0})
+    test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g1': 1.0, 'g2': 1.0})
     test('N', L=6, M=6, terms={'t': 1.0, 'U': 1.0})
 
 
