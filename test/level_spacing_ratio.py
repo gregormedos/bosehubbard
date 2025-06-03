@@ -22,8 +22,8 @@ def main():
         for _ in range(num_realizations):
             H_dis = hs.op_potential_disorder()
             for j, disorder_strength in enumerate(disorder_strengths):
-                hamiltonian_tunnel = tunneling_rate * H_tun + interaction_strength * H_int + disorder_strength * H_dis
-                eigen_energies = np.linalg.eigvalsh(hamiltonian_tunnel)[(dim - keepvals) // 2: (dim + keepvals) // 2]
+                hamiltonian = tunneling_rate * H_tun + interaction_strength * H_int + disorder_strength * H_dis
+                eigen_energies = np.linalg.eigvalsh(hamiltonian)[(dim - keepvals) // 2: (dim + keepvals) // 2]
                 s = np.diff(eigen_energies)
                 r[i, j] += np.mean([min(s1/s2, s2/s1) for s1, s2 in zip(s[1:], s[:-1])])
     r /= num_realizations
@@ -35,6 +35,7 @@ def main():
     plt.ylabel('$W$')
     plt.tight_layout()
     plt.savefig('test/plots/level_spacing_ratio.png', dpi=300)
+    plt.close()
 
 
 if __name__ == '__main__':
