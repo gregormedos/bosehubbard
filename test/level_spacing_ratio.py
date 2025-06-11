@@ -6,14 +6,16 @@ plt.rcParams.update({'font.size': 18})
 
 
 def main():
-    num_sites = 6
+    L = 7
+    M = 2
+    N = L
     tunneling_rate = 1.0
-    interaction_strengths = np.logspace(-2, 3, 20)
-    disorder_strengths = np.linspace(0.01, 10.0, 20)
+    interaction_strengths = np.logspace(-2, 3, 30)
+    disorder_strengths = np.linspace(0.01, 10.0, 30)
     keepvals = 100
-    num_realizations = 100
+    num_realizations = 10
     r = np.zeros((len(interaction_strengths), len(disorder_strengths)), dtype=float)
-    hs = bh.HilbertSpace(num_sites, num_sites, 'N', num_sites)
+    hs = bh.HilbertSpace(L, M, 'N', n_tot=N)
     dim = hs.dim
     print(hs.dim)
     H_tun = hs.op_hamiltonian_tunnel_obc()
