@@ -7,10 +7,11 @@ np.set_printoptions(linewidth=200)
 HAMILTONIAN_DICT = {
     't-pbc': bh.HilbertSpace.op_hamiltonian_tunnel_pbc,
     't-obc': bh.HilbertSpace.op_hamiltonian_tunnel_obc,
-    'g2-obc': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pbc,
-    'g2-pbc': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_obc,
+    'g2-pbc': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_pbc,
+    'g2-obc': bh.HilbertSpace.op_hamiltonian_annihilate_create_pair_obc,
     'g1': bh.HilbertSpace.op_hamiltonian_annihilate_create,
-    'U': bh.HilbertSpace.op_hamiltonian_interaction
+    'U': bh.HilbertSpace.op_hamiltonian_interaction,
+    'W': bh.HilbertSpace.op_potential_disorder
 }
 HAMILTONIAN_K_DICT = {
     't-pbc': bh.HilbertSpace.op_hamiltonian_tunnel_k,
@@ -31,47 +32,73 @@ BINS = 50
 def main():
     L = 6
     M = 2
-    N = 3
-    test_bh(L, M, N)
+    test_bh(L, M)
+    test_bhW(L, M)
     test_bhg1(L, M)
+    test_bhg1W(L, M)
     test_bhg2(L, M)
+    test_bhg2W(L, M)
     test_bhg1g2(L, M)
+    test_bhg1g2W(L, M)
 
 
-def test_bh(L, M, N):
+def test_bh(L, M):
     terms = [('t-pbc', 1.0), ('U', 1.0)]
     test_symmetries(terms, L, M)
     test_decomposition_n(terms, L, M)
-    test_symmetries_k(terms, L, M)
-    test_symmetries_kn(terms, L, M, N)
     test_decomposition_k(terms, L, M)
     test_decomposition_kn(terms, L, M)
+    test_symmetries_k(terms, L, M)
+    for N in range(L * M + 1):
+        test_symmetries_kn(terms, L, M, N)
     test_decomposition_pk(terms, L, M)
-    test_decomposition_pkn(terms, L, M, N)
+    for N in range(L * M + 1):
+        test_decomposition_pkn(terms, L, M, N)
+
+
+def test_bhW(L, M):
+    terms = [('t-obc', 1.0), ('U', 1.0), ('W', 1.0)]
+    test_symmetries(terms, L, M)
+    test_decomposition_n(terms, L, M)
 
 
 def test_bhg1(L, M):
     terms = [('t-pbc', 1.0), ('U', 1.0), ('g1', 1.0)]
     test_symmetries(terms, L, M)
-    test_symmetries_k(terms, L, M)
     test_decomposition_k(terms, L, M)
+    test_symmetries_k(terms, L, M)
     test_decomposition_pk(terms, L, M)
+
+
+def test_bhg1W(L, M):
+    terms = [('t-obc', 1.0), ('U', 1.0), ('g1', 1.0), ('W', 1.0)]
+    test_symmetries(terms, L, M)
 
 
 def test_bhg2(L, M):
     terms = [('t-pbc', 1.0), ('U', 1.0), ('g2-pbc', 1.0)]
     test_symmetries(terms, L, M)
-    test_symmetries_k(terms, L, M)
     test_decomposition_k(terms, L, M)
+    test_symmetries_k(terms, L, M)
     test_decomposition_pk(terms, L, M)
+
+
+def test_bhg2W(L, M):
+    terms = [('t-obc', 1.0), ('U', 1.0), ('g2-obc', 1.0), ('W', 1.0)]
+    test_symmetries(terms, L, M)
 
 
 def test_bhg1g2(L, M):
     terms = [('t-pbc', 1.0), ('U', 1.0), ('g2-pbc', 1.0), ('g1', 1.0)]
     test_symmetries(terms, L, M)
-    test_symmetries_k(terms, L, M)
     test_decomposition_k(terms, L, M)
+    test_symmetries_k(terms, L, M)
     test_decomposition_pk(terms, L, M)
+
+
+def test_bhg1g2W(L, M):
+    terms = [('t-obc', 1.0), ('U', 1.0), ('g2-obc', 1.0), ('g1', 1.0), ('W', 1.0)]
+    test_symmetries(terms, L, M)
 
 
 def test_symmetries(terms: list, num_sites: int, n_max: int):
@@ -262,7 +289,7 @@ def test_decomposition_kn(terms: list, num_sites: int, n_max: int):
             w_sectors[f'({hsss.n_tot}|{hsss.crystal_momentum})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig(f'test/plots/decompositon_kn_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
+    fig.savefig(f'test/plots/decomposition_kn_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
     plt.close(fig)
 
     spect = {}
@@ -288,7 +315,7 @@ def test_decomposition_kn(terms: list, num_sites: int, n_max: int):
     axis.hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig(f'test/plots/decompositon_kn_spect_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
+    fig.savefig(f'test/plots/decomposition_kn_spect_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
     plt.close(fig)
 
 
@@ -444,7 +471,7 @@ def test_symmetries_kn(terms: list, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open(f'test/data/symmetries_kn_spect_k=zero_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
+    with open(f'test/data/symmetries_kn_spect_N={n_tot}_k=zero_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
@@ -461,7 +488,7 @@ def test_symmetries_kn(terms: list, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open(f'test/data/symmetries_kn_spect_pk_k=zero_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
+    with open(f'test/data/symmetries_kn_spect_pk_N={n_tot}_k=zero_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
@@ -478,7 +505,7 @@ def test_symmetries_kn(terms: list, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open(f'test/data/symmetries_kn_spect_k=bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
+    with open(f'test/data/symmetries_kn_spect_N={n_tot}_k=bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
@@ -495,14 +522,14 @@ def test_symmetries_kn(terms: list, num_sites: int, n_max: int, n_tot: int):
         else:
             spect[energy] += 1
     spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-    with open(f'test/data/symmetries_kn_spect_pk_k=bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
+    with open(f'test/data/symmetries_kn_spect_pk_N={n_tot}_k=bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
         for energy, degeneracy in spect.items():
             file.write(f'{energy:.14f}[{degeneracy}]\n')
 
     axes[1, 3].hist(w, BINS)
 
     fig.tight_layout()
-    fig.savefig(f'test/plots/symmetries_kn_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
+    fig.savefig(f'test/plots/symmetries_kn_N={n_tot}_k=zero-bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
     plt.close(fig)
 
 
@@ -527,9 +554,9 @@ def test_decomposition_pkn(terms: list, num_sites: int, n_max: int, n_tot: int):
         w_sectors_list[1][f'({hss.reflection_parity})'] = np.round(np.linalg.eigvalsh(h), PRECISION)
 
     fig.tight_layout()
-    fig.savefig(f'test/plots/decomposition_pkn_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
+    fig.savefig(f'test/plots/decomposition_pkn_N={n_tot}_k=zero-bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
 
-    for i, k in enumerate(('k=zero', 'k=bragg')):
+    for i, k in enumerate(('zero', 'bragg')):
         spect = {}
         for sector, w_sector in w_sectors_list[i].items():
             for energy in w_sector:
@@ -539,7 +566,7 @@ def test_decomposition_pkn(terms: list, num_sites: int, n_max: int, n_tot: int):
                     spect[energy][0] += sector
                     spect[energy][1] += 1
         spect = {energy: spect[energy] for energy in sorted(spect.keys())}
-        with open(f'test/data/decomposition_pkn_spect_{k}_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
+        with open(f'test/data/decomposition_pkn_spect_N={n_tot}_k={k}_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.txt', 'w') as file:
             for energy, (sector, degeneracy) in spect.items():
                 file.write(f'{energy:.14f}[{degeneracy}]{sector}\n')
 
@@ -555,7 +582,7 @@ def test_decomposition_pkn(terms: list, num_sites: int, n_max: int, n_tot: int):
         axes[i].hist(w[i], BINS)
 
     fig.tight_layout()
-    fig.savefig(f'test/plots/decomposition_pkn_spect_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
+    fig.savefig(f'test/plots/decomposition_pkn_spect_N={n_tot}_k=zero-bragg_{'_'.join(str(term) + '-' + str(strength) for term, strength in terms)}.pdf')
     plt.close(fig)
 
 
