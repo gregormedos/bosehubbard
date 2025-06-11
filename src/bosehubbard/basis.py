@@ -223,6 +223,28 @@ def gen_basis_nblock(num_sites: int, n_tot: int, dim: int, n_max: int):
         return gen_basis_nblock_softcore(num_sites, n_tot, dim, n_max)
     else:
         raise ValueError("Argument n_max of gen_basis_nblock must be greater than 0 but was given " + f"{n_max}")
+    
+
+def gen_basis_z2block(num_sites: int, n_tot_parity: int, n_max: int):
+    if num_sites > 0:
+        basis = []
+        if n_tot_parity == 1:
+            n_tot_min = 0  # even sector
+        elif n_tot_parity == -1:
+            n_tot_min = 1  # odd sector
+        else:
+            raise ValueError("Argument n_tot_parity of gen_basis_z2block must be in {1, -1} but was given " + f"{n_tot_parity}")
+        for n_tot in range(n_tot_min, num_sites * n_max + 1, 2):  # adding 2 particles conserves the particle number parity
+            dim_n = dim_nblock(num_sites, n_tot, n_max)
+            basis_n = gen_basis_nblock(num_sites, n_tot, dim_n, n_max)
+            basis.append(basis_n)
+        basis = np.vstack(basis)
+        dim = basis.shape[0]
+    else:
+        basis = None
+        dim = None
+
+    return basis, dim
 
 
 def gen_basis_nblock_from_full(super_basis: np.ndarray, n_tot: int):
@@ -251,6 +273,44 @@ def gen_basis_nblock_from_full(super_basis: np.ndarray, n_tot: int):
     state_list = []
     for state_a in super_basis:
         if np.sum(state_a) == n_tot:
+            state_list.append(state_a)  # intentionally avoiding copying
+    basis = np.array(state_list, dtype=int)
+    dim = basis.shape[0]
+
+    return basis, dim
+
+
+def gen_basis_z2block_from_full(super_basis: np.ndarray, n_tot_parity: int):
+    """
+    Generate the Z2-block Hilbert space Fock basis, given the particle number
+    parity `n_tot_parity` and the full Hilbert space Fock basis `super_basis`.
+
+    Parameters
+    ----------
+    super_basis : np.ndarray
+        Hilbert space Fock basis
+    n_tot_parity : int
+        Total number of bosons
+    
+    Returns
+    -------
+    basis : np.ndarray
+        Hilbert space Fock basis
+    dim : int
+        Hilbert space dimension
+
+    """
+    # we only want the pointers to the Fock states that belong to a
+    # subspace with a good quantum number n_tot_parity
+    if n_tot_parity == 1:
+        remainder = 0
+    elif n_tot_parity == -1:
+        remainder = 1
+    else:
+        raise ValueError("Argument n_tot_parity of gen_basis_z2block must be in {1, -1} but was given " + f"{n_tot_parity}")
+    state_list = []
+    for state_a in super_basis:
+        if np.sum(state_a) % 2 == remainder:
             state_list.append(state_a)  # intentionally avoiding copying
     basis = np.array(state_list, dtype=int)
     dim = basis.shape[0]
