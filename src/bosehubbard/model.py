@@ -17,7 +17,7 @@ class HilbertSpace:
     n_max : int
         Maximum number of bosons on site
     space : str, default='full'
-        {'full', 'N', 'K', 'KN', 'PK', 'PKN'}
+        {'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}
     n_tot : int, optional
         Total number of bosons
     crystal_momentum : int, optional
@@ -33,6 +33,7 @@ class HilbertSpace:
             n_max: int,
             space: str = 'full',
             n_tot: int = None,
+            n_tot_parity: int = None,
             crystal_momentum: int = None,
             reflection_parity: int = None,
     ):
@@ -46,6 +47,7 @@ class HilbertSpace:
         self.super_basis = None
         self.super_findstate = None
         self.n_tot = n_tot
+        self.n_tot_parity = n_tot_parity
         self.crystal_momentum = crystal_momentum
         self.translation_periods = None
         self.reflection_parity = reflection_parity
@@ -63,6 +65,11 @@ class HilbertSpace:
             self.super_dim = self.dim
             self.super_basis = self.basis  # intentionally avoid copying
 
+        elif space == 'Z2':
+            self.basis, self.dim = gen_basis_z2block(num_sites, n_tot_parity, n_max)
+            self.super_dim = self.dim
+            self.super_basis = self.basis  # intentionally avoid copying
+
         elif space == 'K':
             self.super_dim = dim_full(num_sites, n_max)
             self.super_basis = gen_basis_full(num_sites, self.super_dim, n_max)
@@ -75,6 +82,14 @@ class HilbertSpace:
         elif space == 'KN':
             self.super_dim = dim_nblock(num_sites, n_tot, n_max)
             self.super_basis = gen_basis_nblock(num_sites, n_tot, self.super_dim, n_max)
+            (
+                self.basis,
+                self.translation_periods,
+                self.dim
+            ) = gen_representative_basis_kblock(self.super_basis, num_sites, crystal_momentum)
+
+        elif space == 'KZ2':
+            self.super_basis, self.super_dim = gen_basis_z2block(num_sites, n_tot_parity, n_max)
             (
                 self.basis,
                 self.translation_periods,
@@ -111,8 +126,22 @@ class HilbertSpace:
                 reflection_parity
             )
 
+        elif space == 'PKZ2' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
+            self.super_basis, self.super_dim = gen_basis_z2block(num_sites, n_tot_parity, n_max)
+            (
+                self.basis,
+                self.translation_periods,
+                self.nums_translations_reflection,
+                self.dim
+            ) = gen_representative_basis_pkblock(
+                self.super_basis,
+                num_sites,
+                crystal_momentum,
+                reflection_parity
+            )
+
         else:
-            raise ValueError("Value of `space` must be in `{'full', 'N', 'K', 'KN', 'PK', 'PKN'}`")
+            raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}`")
         
         self.findstate = {}
         for a in range(self.dim):
@@ -132,6 +161,18 @@ class HilbertSpace:
                 state_a = basis_n[a]
                 change_of_basis_mat[self.findstate[tuple(state_a)], beginning_of_block + a] += 1.0
             beginning_of_block += dim_n
+
+        return change_of_basis_mat
+    
+    def basis_transformation_z2(self, mat: np.ndarray):
+        change_of_basis_mat = np.zeros_like(mat)
+        beginning_of_block = 0
+        for z2 in (1, -1):
+            basis_z2, dim_z2 = gen_basis_z2block_from_full(self.basis, z2)
+            for a in range(dim_z2):
+                state_a = basis_z2[a]
+                change_of_basis_mat[self.findstate[tuple(state_a)], beginning_of_block + a] += 1.0
+            beginning_of_block += dim_z2
 
         return change_of_basis_mat
 
@@ -198,6 +239,40 @@ class HilbertSpace:
                             beginning_of_block + a
                         ] += normalization_a * bloch_wave
                 beginning_of_block += representative_dim_kn
+
+        return change_of_basis_mat
+    
+    def basis_transformation_kz2(self, mat: np.ndarray):
+        if self.crystal_momentum == 0 or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+            dtype = float
+        else:
+            dtype = complex
+        change_of_basis_mat = np.zeros(mat.shape, dtype=dtype)
+        beginning_of_block = 0
+        for z2 in (1, -1):
+            basis_z2, dim_z2 = gen_basis_z2block_from_full(self.basis, z2)
+            for k in range(self.num_sites):
+                (
+                    representative_basis_kz2,
+                    translation_periods_kz2,
+                    representative_dim_kz2
+                ) = gen_representative_basis_kblock(basis_z2, self.num_sites, k)
+                for a in range(representative_dim_kz2):
+                    representative_state_a = representative_basis_kz2[a]
+                    translation_period_a = translation_periods_kz2[a]
+                    normalization_a = np.sqrt(translation_period_a) / self.num_sites
+                    for r in range(self.num_sites):
+                        phase_arg = -2.0 * np.pi / self.num_sites * k * r 
+                        if (self.crystal_momentum == 0) or (self.num_sites % 2 == 0 and self.crystal_momentum == self.num_sites // 2):
+                            bloch_wave = np.cos(phase_arg)
+                        else:
+                            bloch_wave = np.exp(1.0j * phase_arg)
+                        t_state_a = np.roll(representative_state_a, r)
+                        change_of_basis_mat[
+                            self.findstate[tuple(t_state_a)],
+                            beginning_of_block + a
+                        ] += normalization_a * bloch_wave
+                beginning_of_block += representative_dim_kz2
 
         return change_of_basis_mat
 
@@ -589,9 +664,9 @@ class DecomposedHilbertSpace(HilbertSpace):
     n_max : int
         Maximum number of bosons on site
     space : str, default='full'
-        {'full', 'N', 'K', 'KN', 'PK', 'PKN'}
+        {'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}
     sym : str, optional
-        {'N', 'K', 'KN', 'PK', 'PKN'}
+        {'N', 'K', 'Z2', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}
     n_tot : int, optional
         Total number of bosons
     crystal_momentum : int, optional
@@ -614,6 +689,7 @@ class DecomposedHilbertSpace(HilbertSpace):
             space: str = 'full',
             sym: str = None,
             n_tot: int = None,
+            n_tot_parity: int = None,
             crystal_momentum: int = None,
             reflection_parity: int = None,
             super_dim: int = None,
@@ -631,6 +707,7 @@ class DecomposedHilbertSpace(HilbertSpace):
         self.super_basis = None
         self.super_findstate = None
         self.n_tot = n_tot
+        self.n_tot_parity = n_tot_parity
         self.crystal_momentum = crystal_momentum
         self.translation_periods = None
         self.reflection_parity = reflection_parity
@@ -643,6 +720,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                 n_max,
                 space,
                 n_tot,
+                n_tot_parity,
                 crystal_momentum,
                 reflection_parity
             )
@@ -659,14 +737,17 @@ class DecomposedHilbertSpace(HilbertSpace):
             elif space == 'N':
                 self.basis, self.dim = gen_basis_nblock_from_full(super_basis, n_tot)
 
-            elif space in {'K', 'KN'}:
+            elif space == 'Z2':
+                self.basis, self.dim = gen_basis_z2block_from_full(super_basis, n_tot_parity)
+
+            elif space in {'K', 'KN', 'KZ2'}:
                 (
                     self.basis,
                     self.translation_periods,
                     self.dim
                 ) = gen_representative_basis_kblock(super_basis, num_sites, crystal_momentum)
 
-            elif space in {'PK', 'PKN'} and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
+            elif space in {'PK', 'PKN', 'PKZ2'} and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 (
                     self.basis,
                     self.translation_periods,
@@ -680,7 +761,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                 )
 
             else:
-                raise ValueError("Value of `space` must be in `{'full', 'N', 'K', 'KN', 'PK', 'PKN'}`")
+                raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}`")
             
             self.findstate = {}
             for a in range(self.dim):
@@ -698,6 +779,21 @@ class DecomposedHilbertSpace(HilbertSpace):
                             sym,
                             n_tot=n,
                             super_dim=None,  # N-block has smaller super_dim
+                            super_basis=None,  # intentionally avoiding copying
+                            super_findstate=None
+                        )
+                    )
+            elif sym in {'Z2', 'KZ2', 'PKZ2'}:
+                self.subspaces = []
+                for z2 in (1, -1):
+                    self.subspaces.append(
+                        DecomposedHilbertSpace(
+                            num_sites,
+                            n_max,
+                            'Z2',
+                            sym,
+                            n_tot_parity=z2,
+                            super_dim=None,  # z2-block has smaller super_dim
                             super_basis=None,  # intentionally avoiding copying
                             super_findstate=None
                         )
@@ -736,6 +832,24 @@ class DecomposedHilbertSpace(HilbertSpace):
                         )
                     )
 
+        elif space == 'Z2':
+            if sym in {'KZ2', 'PKZ2'}:
+                self.subspaces = []
+                for k in range(num_sites):
+                    self.subspaces.append(
+                        DecomposedHilbertSpace(
+                            num_sites,
+                            n_max,
+                            'KZ2',
+                            sym,
+                            n_tot_parity=n_tot_parity,
+                            crystal_momentum=k,
+                            super_dim=self.super_dim,  # K-block has identical super_dim
+                            super_basis=self.super_basis,  # intentionally avoiding copying
+                            super_findstate=self.super_findstate
+                        )
+                    )
+
         elif space == 'K':
             if sym == 'PK' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
                 self.subspaces = []
@@ -765,6 +879,25 @@ class DecomposedHilbertSpace(HilbertSpace):
                             space='PKN',
                             sym=sym,
                             n_tot=n_tot,
+                            crystal_momentum=crystal_momentum,
+                            reflection_parity=p,
+                            super_dim=self.super_dim,  # P-block has identical super_dim
+                            super_basis=self.super_basis,  # intentionally avoiding copying
+                            super_findstate=self.super_findstate
+                        )
+                    )
+
+        elif space == 'KZ2':
+            if sym == 'PKZ2' and (crystal_momentum == 0 or (num_sites % 2 == 0 and crystal_momentum == num_sites // 2)):
+                self.subspaces = []
+                for p in (1, -1):
+                    self.subspaces.append(
+                        DecomposedHilbertSpace(
+                            num_sites,
+                            n_max,
+                            space='PKZ2',
+                            sym=sym,
+                            n_tot_parity=n_tot_parity,
                             crystal_momentum=crystal_momentum,
                             reflection_parity=p,
                             super_dim=self.super_dim,  # P-block has identical super_dim

@@ -33,7 +33,13 @@ def main():
     test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g1': 1.0})
     test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g2': 1.0})
     test('full', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g1': 1.0, 'g2': 1.0})
-    test('N', L=6, M=6, terms={'t': 1.0, 'U': 1.0})
+    test('Z2', L=6, M=2, terms={'t': 1.0, 'U': 1.0})
+    test('Z2', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g2': 1.0})
+    test('N', L=6, M=2, terms={'t': 1.0, 'U': 1.0})
+    test('K', L=6, M=2, terms={'t': 1.0, 'U': 1.0})
+    test('K', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g1': 1.0})
+    test('K', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g2': 1.0})
+    test('K', L=6, M=2, terms={'t': 1.0, 'U': 1.0, 'g1': 1.0, 'g2': 1.0})
 
 
 def plot_dos(dir_name: str, file_name: str, eigen_energies: np.ndarray, reference_eigen_energies: np.ndarray = None):
@@ -108,6 +114,9 @@ def _read_eigen_energies(group: h5py.Group, eigen_energies: dict):
         if 'n_tot' in group['param']:
             N = group['param/n_tot'][()]
             sym += f'{N}|'
+        if 'n_tot_parity' in group['param']:
+            Z2 = group['param/n_tot_parity'][()]
+            sym += f'{Z2}|'
         if 'crystal_momentum' in group['param']:
             K = group['param/crystal_momentum'][()]
             sym += f'{K}|'
@@ -130,12 +139,13 @@ def block_exact_diagonalization(
         space: str = 'full',
         sym: str = None,
         N: int = None,
+        Z2: int = None,
         K: int = None,
         P: int = None
 ):
     with h5py.File(f'{dir_name}{file_name}_output.h5', 'w') as file:
         group = file.create_group('data')
-        hs = bh.DecomposedHilbertSpace(num_sites=L, n_max=M, space=space, sym=sym, n_tot=N, crystal_momentum=K, reflection_parity=P)
+        hs = bh.DecomposedHilbertSpace(num_sites=L, n_max=M, space=space, sym=sym, n_tot=N, n_tot_parity=Z2, crystal_momentum=K, reflection_parity=P)
         _block_exact_diagonalization(file, group, hs, terms)
 
 
@@ -164,6 +174,8 @@ def _block_exact_diagonalization(
             param.create_dataset('sym', data=hs.sym)
         if hs.n_tot is not None:
             param.create_dataset('n_tot', data=hs.n_tot)
+        if hs.n_tot_parity is not None:
+            param.create_dataset('n_tot_parity', data=hs.n_tot_parity)
         if hs.crystal_momentum is not None:
             param.create_dataset('crystal_momentum', data=hs.crystal_momentum)
         if hs.reflection_parity is not None:
@@ -171,9 +183,9 @@ def _block_exact_diagonalization(
         file.flush()
 
         spectrum = group.create_group('spectrum')
-        if hs.space in {'PK', 'PKN'}:
+        if hs.space in {'PK', 'PKN', 'PKZ2'}:
             hamiltonians = HAMILTONIAN_DICT['PK']
-        elif hs.space in ('K', 'KN'):
+        elif hs.space in ('K', 'KN', 'KZ2'):
             hamiltonians = HAMILTONIAN_DICT['K']
         else:
             hamiltonians = HAMILTONIAN_DICT['None']
@@ -192,22 +204,30 @@ def test(space, L, M, terms):
     if space == 'full':
         reference_eigen_energies = _test(f'{file_name}space=full_sym=None', L=L, M=M, terms=terms)
         _test(f'{file_name}space=full_sym=N', reference_eigen_energies, L=L, M=M, terms=terms, sym='N')
+        _test(f'{file_name}space=full_sym=Z2', reference_eigen_energies, L=L, M=M, terms=terms, sym='Z2')
         _test(f'{file_name}space=full_sym=K', reference_eigen_energies, L=L, M=M, terms=terms, sym='K')
         _test(f'{file_name}space=full_sym=KN', reference_eigen_energies, L=L, M=M, terms=terms, sym='KN')
+        _test(f'{file_name}space=full_sym=KZ2', reference_eigen_energies, L=L, M=M, terms=terms, sym='KZ2')
         _test(f'{file_name}space=full_sym=PK', reference_eigen_energies, L=L, M=M, terms=terms, sym='PK')
         _test(f'{file_name}space=full_sym=PKN', reference_eigen_energies, L=L, M=M, terms=terms, sym='PKN')
+        _test(f'{file_name}space=full_sym=PKZ2', reference_eigen_energies, L=L, M=M, terms=terms, sym='PKZ2')
     elif space == 'N':
-        reference_eigen_energies = _test(f'{file_name}space=N_sym=None', L=L, M=M, terms=terms, space='N', N=L)
+        reference_eigen_energies = _test(f'{file_name}space=N_N={L}_sym=None', L=L, M=M, terms=terms, space='N', N=L)
         _test(f'{file_name}space=N_N={L}_sym=KN', reference_eigen_energies, L=L, M=M, terms=terms, space='N', sym='KN', N=L)
         _test(f'{file_name}space=N_N={L}_sym=PKN', reference_eigen_energies, L=L, M=M, terms=terms, space='N', sym='PKN', N=L)
+        reference_eigen_energies = _test(f'{file_name}space=KN_N={L}_K={0}_sym=None', L=L, M=M, terms=terms, space='KN', N=L, K=0)
+        _test(f'{file_name}space=KN_N={L}_K={0}_sym=PKN', reference_eigen_energies, L=L, M=M, terms=terms, space='KN', sym='PKN', N=L, K=0)
+    elif space == 'Z2':
+        reference_eigen_energies = _test(f'{file_name}space=Z2_Z2={1}_sym=None', L=L, M=M, terms=terms, space='Z2', Z2=1)
+        _test(f'{file_name}space=Z2_Z2={1}_sym=KZ2', reference_eigen_energies, L=L, M=M, terms=terms, space='Z2', sym='KZ2', Z2=1)
+        _test(f'{file_name}space=Z2_Z2={1}_sym=PKZ2', reference_eigen_energies, L=L, M=M, terms=terms, space='Z2', sym='PKZ2', Z2=1)
+        reference_eigen_energies = _test(f'{file_name}space=KZ2_Z2={1}_K={0}_sym=None', L=L, M=M, terms=terms, space='KZ2', Z2=1, K=0)
+        _test(f'{file_name}space=KZ2_Z2={1}_K={0}_sym=PKZ2', reference_eigen_energies, L=L, M=M, terms=terms, space='KZ2', sym='PKZ2', Z2=1, K=0)
+    elif space == 'K':
         reference_eigen_energies = _test(f'{file_name}space=K_K={0}_sym=None', L=L, M=M, terms=terms, space='K', K=0)
         _test(f'{file_name}space=K_K={0}_sym=PK', reference_eigen_energies, L=L, M=M, terms=terms, space='K', sym='PK', K=0)
-        reference_eigen_energies = _test(f'{file_name}space=KN_N={L//2}_K={0}_sym=None', L=L, M=M, terms=terms, space='KN', N=L, K=0)
-        _test(f'{file_name}space=KN_N={L}_K={0}_sym=PKN', reference_eigen_energies, L=L, M=M, terms=terms, space='KN', sym='PKN', N=L, K=0)
-        reference_eigen_energies = _test(f'{file_name}space=PK_K={0}_P={1}_sym=None', L=L, M=M, terms=terms, space='PK', K=0, P=1)
-        reference_eigen_energies = _test(f'{file_name}space=PKN_N={L}_K={0}_P={1}_sym=None', L=L, M=M, terms=terms, space='PKN', sym='PKN', N=L, K=0, P=1)
     else:
-        raise ValueError("Value of `space` must be in `{'full', 'N'}`")
+        raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K'}`")
 
 
 if __name__ == '__main__':

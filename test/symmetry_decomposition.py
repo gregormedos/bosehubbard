@@ -63,6 +63,7 @@ def test_symmetries(term: str, num_sites: int, n_max: int):
 
     hs = bh.HilbertSpace(num_sites, n_max)
     h = HAMILTONIAN_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -79,7 +80,7 @@ def test_symmetries(term: str, num_sites: int, n_max: int):
     
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_n(h)
-    h = s.T @ h @ s
+    h = s.T @ h_copy @ s
     axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -95,9 +96,8 @@ def test_symmetries(term: str, num_sites: int, n_max: int):
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 1].hist(w, BINS)
-    h = HAMILTONIAN_DICT[term](hs)
     s = hs.basis_transformation_z2(h)
-    h = s.T @ h @ s
+    h = s.T @ h_copy @ s
     axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -113,9 +113,8 @@ def test_symmetries(term: str, num_sites: int, n_max: int):
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 2].hist(w, BINS)
-    h = HAMILTONIAN_DICT[term](hs)
     s = hs.basis_transformation_k(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -131,9 +130,8 @@ def test_symmetries(term: str, num_sites: int, n_max: int):
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 3].hist(w, BINS)
-    h = HAMILTONIAN_DICT[term](hs)
     s = hs.basis_transformation_kn(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 4].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -149,9 +147,8 @@ def test_symmetries(term: str, num_sites: int, n_max: int):
             file.write(f'{energy:.14f}[{degeneracy}]\n')
     
     axes[1, 4].hist(w, BINS)
-    h = HAMILTONIAN_DICT[term](hs)
     s = hs.basis_transformation_kz2(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 5].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -408,6 +405,7 @@ def test_symmetries_k(term: str, num_sites: int, n_max: int):
 
     hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -424,7 +422,7 @@ def test_symmetries_k(term: str, num_sites: int, n_max: int):
     
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
-    h = s.T @ h @ s
+    h = s.T @ h_copy @ s
     axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -442,6 +440,7 @@ def test_symmetries_k(term: str, num_sites: int, n_max: int):
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='K', crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -458,7 +457,7 @@ def test_symmetries_k(term: str, num_sites: int, n_max: int):
     
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
-    h = s.T @ h @ s
+    h = s.T @ h_copy @ s
     axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -542,6 +541,7 @@ def test_symmetries_kn(term: str, num_sites: int, n_max: int, n_tot: int):
 
     hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -558,7 +558,7 @@ def test_symmetries_kn(term: str, num_sites: int, n_max: int, n_tot: int):
 
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -576,6 +576,7 @@ def test_symmetries_kn(term: str, num_sites: int, n_max: int, n_tot: int):
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='KN', n_tot=n_tot, crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -592,7 +593,7 @@ def test_symmetries_kn(term: str, num_sites: int, n_max: int, n_tot: int):
 
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -675,6 +676,7 @@ def test_symmetries_kz2(term: str, num_sites: int, n_max: int, n_tot_parity: int
 
     hs = bh.HilbertSpace(num_sites, n_max, space='KZ2', n_tot_parity=n_tot_parity, crystal_momentum=0)
     h = HAMILTONIAN_K_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 0].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -691,7 +693,7 @@ def test_symmetries_kz2(term: str, num_sites: int, n_max: int, n_tot_parity: int
 
     axes[1, 0].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 1].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -709,6 +711,7 @@ def test_symmetries_kz2(term: str, num_sites: int, n_max: int, n_tot_parity: int
     axes[1, 1].hist(w, BINS)
     hs = bh.HilbertSpace(num_sites, n_max, space='KZ2', n_tot_parity=n_tot_parity, crystal_momentum=num_sites//2)
     h = HAMILTONIAN_K_DICT[term](hs)
+    h_copy = np.copy(h)
     axes[0, 2].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
@@ -725,7 +728,7 @@ def test_symmetries_kz2(term: str, num_sites: int, n_max: int, n_tot_parity: int
 
     axes[1, 2].hist(w, BINS)
     s = hs.basis_transformation_pk(h)
-    h = s.conj().T @ h @ s
+    h = s.conj().T @ h_copy @ s
     axes[0, 3].imshow(np.abs(h))
     w = np.round(np.linalg.eigvalsh(h), PRECISION)
 
