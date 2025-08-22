@@ -7,7 +7,9 @@ plt.rcParams.update({'font.size': 18})
 
 
 def main():
+    N_sector(10, 2, 10)
     N_sector(8, 8, 8)
+    N_sector(8, np.inf, 8)
 
 
 def N_sector(L, M, N):
@@ -20,7 +22,7 @@ def N_sector(L, M, N):
         h = hs.op_hamiltonian_tunnel_obc() + hs.op_hamiltonian_interaction() + 0.1 * hs.op_potential_disorder()
         w = np.linalg.eigvalsh(h)
         np.save(file_name, w)
-    bins = 500
+    bins = 100
     bin_size = (np.max(w) - np.min(w)) / bins
     w_mean = np.mean(w)
     mid = np.argmin(np.abs(w - w_mean))
@@ -37,7 +39,7 @@ def N_sector(L, M, N):
     plt.axvline(w[mid], color='tab:orange', linestyle='dashed')
     plt.axvline(w[mid2], color='tab:green', linestyle='dashed')
     plt.tight_layout()
-    plt.savefig(f'test/plots/{file_id}.png', dpi=300)
+    plt.savefig(f'test/plots/dos_{file_id}.png', dpi=300)
     plt.close()
 
 

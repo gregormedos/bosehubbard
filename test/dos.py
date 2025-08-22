@@ -7,10 +7,14 @@ plt.rcParams.update({'font.size': 18})
 
 
 def main():
-    PKN_sector(10, 10, 10, 0, 1)
-    PKN_sector(10, 10, 10, 0, -1)
-    PKN_sector(10, 10, 10, 5, 1)
-    PKN_sector(10, 10, 10, 5, -1)
+    PKN_sector(12, 2, 12, 0, 1)
+    PKN_sector(12, 2, 12, 0, -1)
+    PKN_sector(12, 2, 12, 6, 1)
+    PKN_sector(12, 2, 12, 6, -1)
+    PKN_sector(10, np.inf, 10, 0, 1)
+    PKN_sector(10, np.inf, 10, 0, -1)
+    PKN_sector(10, np.inf, 10, 5, 1)
+    PKN_sector(10, np.inf, 10, 5, -1)
 
 
 def PKN_sector(L, M, N, K, P):
@@ -19,11 +23,11 @@ def PKN_sector(L, M, N, K, P):
     if os.path.isfile(file_name):
         w = np.load(file_name)
     else:
-        hs = bh.HilbertSpace(L, M, 'PKN', N, K, P)
+        hs = bh.HilbertSpace(L, M, space='PKN', n_tot=N, crystal_momentum=K, reflection_parity=P)
         h = hs.op_hamiltonian_tunnel_pk() + hs.op_hamiltonian_interaction()
         w = np.linalg.eigvalsh(h)
         np.save(file_name, w)
-    bins = 500
+    bins = 100
     bin_size = (np.max(w) - np.min(w)) / bins
     w_mean = np.mean(w)
     mid = np.argmin(np.abs(w - w_mean))
@@ -40,7 +44,7 @@ def PKN_sector(L, M, N, K, P):
     plt.axvline(w[mid], color='tab:orange', linestyle='dashed')
     plt.axvline(w[mid2], color='tab:green', linestyle='dashed')
     plt.tight_layout()
-    plt.savefig(f'test/plots/{file_id}.png', dpi=300)
+    plt.savefig(f'test/plots/dos_{file_id}.png', dpi=300)
     plt.close()
 
 
