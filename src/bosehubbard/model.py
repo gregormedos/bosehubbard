@@ -141,7 +141,7 @@ class HilbertSpace:
             )
 
         else:
-            raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}`")
+            raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}` or PK sector does not exist!!!")
         
         self.findstate = {}
         for a in range(self.dim):
@@ -761,7 +761,7 @@ class DecomposedHilbertSpace(HilbertSpace):
                 )
 
             else:
-                raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}`")
+                raise ValueError("Value of `space` must be in `{'full', 'N', 'Z2', 'K', 'KN', 'KZ2', 'PK', 'PKN', 'PKZ2'}` or PK sector does not exist!!!")
             
             self.findstate = {}
             for a in range(self.dim):
