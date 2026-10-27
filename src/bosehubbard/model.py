@@ -314,7 +314,7 @@ class HilbertSpace:
     
     # Disordered potential
     def op_potential_disorder(self):
-        disorder = 2.0 * np.random.standard_normal(self.num_sites) - 1.0
+        disorder = 2.0 * np.random.uniform(self.num_sites) - 1.0
         mat = np.zeros((self.dim, self.dim), dtype=float)
         for a in range(self.dim):
             state_a = self.basis[a]
